@@ -1,0 +1,52 @@
+export const PAYMENT_LABELS: Record<number, string> = {
+  1: 'Cash',
+  2: 'UPI',
+  3: 'Card',
+  4: 'Credit / Udhaar',
+  5: 'Wallet',
+}
+
+export const BILL_STATUS_LABELS: Record<number, string> = {
+  1: 'Completed',
+  2: 'Partially paid',
+  3: 'Credit',
+  4: 'Cancelled',
+}
+
+export const BILL_TYPE_LABELS: Record<number, string> = {
+  1: 'Sale',
+  2: 'Exchange',
+}
+
+export const MOVEMENT_LABELS: Record<number, string> = {
+  1: 'Sale',
+  2: 'Return',
+  3: 'Purchase',
+  4: 'Adjustment in',
+  5: 'Adjustment out',
+  6: 'Transfer in',
+  7: 'Transfer out',
+  8: 'Exchange',
+  9: 'Opening stock',
+}
+
+export const REFERRAL_STATUS_LABELS: Record<number, string> = {
+  1: 'Pending',
+  2: 'Credited',
+  3: 'Redeemed',
+  4: 'Cancelled',
+}
+
+export const LEDGER_TYPE_LABELS: Record<number, string> = {
+  1: 'Sale',
+  2: 'Return',
+  3: 'Credit',
+  4: 'Payment received',
+  5: 'Wallet credit',
+  6: 'Wallet redeem',
+}
+
+export const RETURN_KIND_LABELS: Record<number, string> = {
+  1: 'Return',
+  2: 'Exchange',
+}
