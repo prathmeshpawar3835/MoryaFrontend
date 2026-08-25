@@ -28,6 +28,7 @@ const groups: Group[] = [
       { to: '/pos/held', label: 'Held / Parked Bills', icon: 'bi-pause-circle', feature: 'pos' },
       { to: '/bills', label: 'Bills History', icon: 'bi-receipt-cutoff', feature: 'bills' },
       { to: '/returns', label: 'Returns & Exchange', icon: 'bi-arrow-repeat', feature: 'returns' },
+      { to: '/repairs', label: 'Repair / Polish', icon: 'bi-tools', feature: 'repairs' },
     ],
   },
   {
@@ -52,6 +53,7 @@ const groups: Group[] = [
       { to: '/inventory/transfer', label: 'Store Transfer', icon: 'bi-arrow-left-right', feature: 'inventory.transfer' },
       { to: '/inventory/ledger', label: 'Stock Ledger', icon: 'bi-journal-text', feature: 'inventory.view' },
       { to: '/inventory/purchases', label: 'Purchase Orders', icon: 'bi-truck', feature: 'purchases' },
+      { to: '/inventory/suppliers', label: 'Suppliers', icon: 'bi-building', feature: 'suppliers' },
     ],
   },
   {
@@ -62,6 +64,7 @@ const groups: Group[] = [
     items: [
       { to: '/customers', label: 'All Customers', icon: 'bi-person', feature: 'customers' },
       { to: '/customers/dues', label: 'Pending Dues (Udhaar)', icon: 'bi-wallet2', feature: 'customers' },
+      { to: '/customers/ledger', label: 'Customer Ledger', icon: 'bi-journal-text', feature: 'customers' },
       { to: '/referrals', label: 'Referral Rewards', icon: 'bi-share', feature: 'referrals' },
     ],
   },
@@ -73,6 +76,7 @@ const groups: Group[] = [
     items: [
       { to: '/reports/sales', label: 'Sales Summary', icon: 'bi-graph-up', feature: 'reports' },
       { to: '/reports/products', label: 'Product Sales', icon: 'bi-bar-chart-line', feature: 'reports' },
+      { to: '/reports/product-analytics', label: 'Product Analytics', icon: 'bi-speedometer', feature: 'reports' },
       { to: '/reports/inventory', label: 'Inventory Valuation', icon: 'bi-boxes', feature: 'reports' },
       { to: '/reports/purchases', label: 'Purchases Report', icon: 'bi-bag-check', feature: 'reports' },
       { to: '/reports/returns', label: 'Returns Analysis', icon: 'bi-arrow-counterclockwise', feature: 'reports' },
@@ -92,6 +96,7 @@ const groups: Group[] = [
       { to: '/settings/billing', label: 'Billing Configuration', icon: 'bi-receipt', feature: 'settings' },
       { to: '/settings/tax', label: 'Tax & GST Settings', icon: 'bi-percent', feature: 'settings' },
       { to: '/settings/referrals', label: 'Referral Scheme', icon: 'bi-stars', feature: 'settings' },
+      { to: '/settings/discounts', label: 'Store Discounts', icon: 'bi-percent', feature: 'discounts' },
       { to: '/settings/business', label: 'Business Profile', icon: 'bi-building', feature: 'settings' },
       { to: '/settings/audit', label: 'System Audit Logs', icon: 'bi-shield-check', feature: 'audit' },
     ],

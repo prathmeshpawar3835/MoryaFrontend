@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { reportApi } from '../../api/reportApi'
+import { posApi } from '../../api/posApi'
 import { queryKeys } from '../../api/queryKeys'
 import { useStore } from '../../context/StoreContext'
 import { PageHeader, SearchBox, DateRangePicker, CurrencyDisplay } from '../../components/common/Feedback'
@@ -17,6 +18,7 @@ function useReportQuery() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [period, setPeriod] = useState('custom')
+  const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
   const query: ReportQuery = {
     pageNumber: page,
     pageSize: 20,
@@ -25,8 +27,9 @@ function useReportQuery() {
     fromDate: from || undefined,
     toDate: to || undefined,
     period,
+    salesPersonId: salesPersonId || undefined,
   }
-  return { query, search, setSearch, page, setPage, from, setFrom, to, setTo, period, setPeriod }
+  return { query, search, setSearch, page, setPage, from, setFrom, to, setTo, period, setPeriod, salesPersonId, setSalesPersonId, selectedStoreId }
 }
 
 function Filters({
@@ -72,6 +75,11 @@ function Filters({
 
 export function SalesReportPage() {
   const f = useReportQuery()
+  const staff = useQuery({
+    queryKey: queryKeys.salesPersons(f.selectedStoreId),
+    queryFn: () => posApi.salesPersons(f.selectedStoreId!),
+    enabled: Boolean(f.selectedStoreId),
+  })
   const q = useQuery({ queryKey: queryKeys.reports('sales', f.query), queryFn: () => reportApi.sales(f.query) })
   const d = q.data
 
@@ -103,6 +111,22 @@ export function SalesReportPage() {
         }}
         period={f.period}
         setPeriod={f.setPeriod}
+        extra={
+          <select
+            className="form-select"
+            style={{ minWidth: '160px' }}
+            value={f.salesPersonId}
+            onChange={(e) => f.setSalesPersonId(e.target.value ? Number(e.target.value) : '')}
+            aria-label="Filter by sales person"
+          >
+            <option value="">All sales persons</option>
+            {staff.data?.map((sp) => (
+              <option key={sp.id} value={sp.id}>
+                {sp.fullName}
+              </option>
+            ))}
+          </select>
+        }
       />
 
       {d ? (
@@ -140,7 +164,7 @@ export function SalesReportPage() {
 
       <DataTable
         loading={q.isLoading}
-        columns={['Bill Number', 'Bill Date', 'Customer Name', 'Grand Total', 'Paid Amount']}
+        columns={['Bill Number', 'Bill Date', 'Customer Name', 'Sales Person', 'Grand Total', 'Paid Amount']}
         page={d?.bills.pageNumber}
         totalPages={d?.bills.totalPages}
         onPage={f.setPage}
@@ -150,6 +174,7 @@ export function SalesReportPage() {
             <td className="fw-bold text-navy-900 font-monospace">{b.billNumber}</td>
             <td className="small text-muted">{formatDateTime(b.billDate)}</td>
             <td>{b.customerName || <span className="text-muted fst-italic">Walk-in</span>}</td>
+            <td>{b.salesPersonName || '—'}</td>
             <td className="fw-bold"><CurrencyDisplay value={b.grandTotal} /></td>
             <td className="text-success"><CurrencyDisplay value={b.paidAmount} /></td>
           </tr>
@@ -476,7 +501,7 @@ export function ReferralReportPage() {
 
       <DataTable
         loading={q.isLoading}
-        columns={['Referrer Member', 'Referrals Count', 'Pending Rewards', 'Credited Rewards', 'Redeemed in POS']}
+        columns={['Referrer', 'Code', 'Referrals', 'Referral Sales', 'Discount Given', 'Pending', 'Credited', 'Redeemed']}
         page={q.data?.pageNumber}
         totalPages={q.data?.totalPages}
         onPage={f.setPage}
@@ -484,7 +509,10 @@ export function ReferralReportPage() {
         {q.data?.items.map((r) => (
           <tr key={r.referrerCustomerId}>
             <td className="fw-bold text-navy-900">{r.referrerName}</td>
+            <td className="font-monospace small">{r.referrerCode || '—'}</td>
             <td><span className="badge bg-light text-dark border">{r.referralCount}</span></td>
+            <td><CurrencyDisplay value={r.referralSales ?? 0} /></td>
+            <td><CurrencyDisplay value={r.discountGiven ?? 0} /></td>
             <td><CurrencyDisplay value={r.pendingRewards} /></td>
             <td className="fw-bold text-success"><CurrencyDisplay value={r.creditedRewards} /></td>
             <td><CurrencyDisplay value={r.redeemedRewards} /></td>

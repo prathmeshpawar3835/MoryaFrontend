@@ -81,7 +81,34 @@ export const LedgerTransactionType = {
   PaymentReceived: 4,
   WalletCredit: 5,
   WalletRedeem: 6,
+  ReferralCredit: 7,
+  ReferralReversal: 8,
+  ExchangeAdjustment: 9,
 } as const
 export type LedgerTransactionType = number
+
+export const DiscountKind = { Percentage: 1, Amount: 2 } as const
+export type DiscountKind = number
+
+export const RepairJobType = { Repair: 1, Polish: 2 } as const
+export type RepairJobType = number
+
+export const RepairJobStatus = {
+  Received: 1,
+  InProgress: 2,
+  Ready: 3,
+  Delivered: 4,
+  Cancelled: 5,
+} as const
+export type RepairJobStatus = number
+
+export const BillItemFulfillmentStatus = {
+  Sold: 1,
+  PartiallyReturned: 2,
+  Returned: 3,
+  PartiallyExchanged: 4,
+  Exchanged: 5,
+} as const
+export type BillItemFulfillmentStatus = number
 
 export const Roles = { Admin: 'Admin', SalesPerson: 'SalesPerson' } as const

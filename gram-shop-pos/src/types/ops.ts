@@ -73,6 +73,7 @@ export interface Purchase {
   id: number
   storeId: number
   storeCode: string
+  supplierId?: number | null
   supplierName: string
   invoiceNumber: string
   purchaseDate: string
@@ -92,6 +93,7 @@ export interface PurchaseItem {
 
 export interface CreatePurchaseRequest {
   storeId: number
+  supplierId?: number | null
   supplierName: string
   invoiceNumber: string
   date?: string
@@ -120,6 +122,8 @@ export interface CreateBillRequest {
   referralCode?: string
   referringMobileNumber?: string
   walletRedeemAmount: number
+  salesPersonId?: number | null
+  storeDiscountId?: number | null
   items: CreateBillItemRequest[]
   payments: CreatePaymentRequest[]
 }
@@ -136,6 +140,10 @@ export interface BillItem {
   taxPercent: number
   taxAmount: number
   total: number
+  returnedQuantity?: number
+  exchangedQuantity?: number
+  remainingQuantity?: number
+  fulfillmentStatus?: number
 }
 
 export interface Payment {
@@ -168,6 +176,10 @@ export interface Bill {
   paidAmount: number
   dueAmount: number
   walletRedeemed: number
+  referralDiscount?: number
+  storeDiscountAmount?: number
+  storeDiscountId?: number | null
+  storeDiscountName?: string | null
   notes?: string | null
   items: BillItem[]
   payments: Payment[]
@@ -200,6 +212,7 @@ export interface HeldBill {
 export interface CreateReturnRequest {
   originalBillId: number
   reason?: string
+  salesPersonId?: number | null
   items: { originalBillItemId: number; quantity: number }[]
 }
 
@@ -215,10 +228,13 @@ export interface ReturnRecord {
   reason?: string | null
   returnKind: ReturnKind
   exchangeBillId?: number | null
+  salesPersonId?: number | null
+  salesPersonName?: string | null
   items: ReturnItem[]
 }
 
 export interface ReturnItem {
+  originalBillItemId?: number
   productId: number
   productCode: string
   productName: string
@@ -234,6 +250,7 @@ export interface CreateExchangeRequest {
   newItems: CreateBillItemRequest[]
   billDiscount: number
   walletRedeemAmount: number
+  salesPersonId?: number | null
   payments: CreatePaymentRequest[]
 }
 
@@ -279,6 +296,9 @@ export interface Customer {
   mobileNumber: string
   address?: string | null
   referralCode: string
+  customerCode?: string
+  referredByCustomerId?: number | null
+  referredByName?: string | null
   outstandingBalance: number
   walletBalance: number
   isActive: boolean
@@ -355,6 +375,130 @@ export interface Referral {
   referredCustomerId: number
   referredName: string
   rewardAmount: number
+  saleAmount?: number
+  discountGiven?: number
+  referralCode?: string
+  billNumber?: string | null
   status: ReferralRewardStatus
   referralDate: string
+}
+
+export interface StoreDiscount {
+  id: number
+  storeId: number
+  storeName: string
+  name: string
+  discountKind: number
+  value: number
+  validFrom?: string | null
+  validTo?: string | null
+  isActive: boolean
+}
+
+export interface StoreDiscountRequest {
+  storeId: number
+  name: string
+  discountKind: number
+  value: number
+  validFrom?: string | null
+  validTo?: string | null
+  isActive: boolean
+}
+
+export interface Supplier {
+  id: number
+  storeId?: number | null
+  storeName?: string | null
+  name: string
+  contactPerson?: string | null
+  phone?: string | null
+  email?: string | null
+  address?: string | null
+  gstNumber?: string | null
+  notes?: string | null
+  isActive: boolean
+  totalPurchased: number
+}
+
+export interface SupplierRequest {
+  storeId?: number | null
+  name: string
+  contactPerson?: string
+  phone?: string
+  email?: string
+  address?: string
+  gstNumber?: string
+  notes?: string
+  isActive: boolean
+}
+
+export interface RepairJob {
+  id: number
+  storeId: number
+  jobNumber: string
+  customerId?: number | null
+  customerName: string
+  mobileNumber: string
+  billId?: number | null
+  invoiceNumber?: string | null
+  productId?: number | null
+  productName: string
+  productDetails?: string | null
+  jobType: number
+  status: number
+  receivedDate: string
+  expectedDate?: string | null
+  completedDate?: string | null
+  deliveredDate?: string | null
+  notes?: string | null
+  history: RepairJobHistory[]
+}
+
+export interface RepairJobHistory {
+  status: number
+  notes?: string | null
+  createdDate: string
+  userName: string
+}
+
+export interface CreateRepairJobRequest {
+  storeId: number
+  customerId?: number | null
+  customerName: string
+  mobileNumber: string
+  billId?: number | null
+  billItemId?: number | null
+  productId?: number | null
+  invoiceNumber?: string
+  productName: string
+  productDetails?: string
+  jobType: number
+  expectedDate?: string | null
+  notes?: string
+}
+
+export interface UpdateRepairJobRequest {
+  status: number
+  expectedDate?: string | null
+  notes?: string
+}
+
+export interface SalesPersonOption {
+  id: number
+  fullName: string
+  userName: string
+  isActive: boolean
+}
+
+export interface ReferralValidation {
+  valid: boolean
+  message?: string | null
+  referrerCustomerId?: number | null
+  referrerName?: string | null
+  referrerMobile?: string | null
+  referrerCode?: string | null
+  referrerWalletBalance?: number
+  newCustomerDiscountRate: number
+  referrerBenefitRate: number
+  rewardType: number
 }

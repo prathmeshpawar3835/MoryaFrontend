@@ -43,10 +43,34 @@ export const LEDGER_TYPE_LABELS: Record<number, string> = {
   3: 'Credit',
   4: 'Payment received',
   5: 'Wallet credit',
-  6: 'Wallet redeem',
+  6: 'Credit used in sale',
+  7: 'Referral credit',
+  8: 'Referral reversal',
+  9: 'Exchange adjustment',
 }
 
 export const RETURN_KIND_LABELS: Record<number, string> = {
   1: 'Return',
   2: 'Exchange',
+}
+
+export const ITEM_STATUS_LABELS: Record<number, string> = {
+  1: 'Sold',
+  2: 'Partially returned',
+  3: 'Returned',
+  4: 'Partially exchanged',
+  5: 'Exchanged',
+}
+
+export const REPAIR_STATUS_LABELS: Record<number, string> = {
+  1: 'Received',
+  2: 'In progress',
+  3: 'Ready',
+  4: 'Delivered',
+  5: 'Cancelled',
+}
+
+export const REPAIR_TYPE_LABELS: Record<number, string> = {
+  1: 'Repair',
+  2: 'Polish',
 }

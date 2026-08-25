@@ -5,15 +5,16 @@ import toast from 'react-hot-toast'
 import { billApi } from '../../api/billApi'
 import { returnApi } from '../../api/returnApi'
 import { productApi } from '../../api/productApi'
+import { posApi } from '../../api/posApi'
 import { queryKeys } from '../../api/queryKeys'
 import { useStore } from '../../context/StoreContext'
 import { PageHeader, SearchBox, CurrencyDisplay } from '../../components/common/Feedback'
 import { DataTable } from '../../components/tables/DataTable'
 import { FormField } from '../../components/common/FormField'
 import { formatDateTime, formatMoney } from '../../utils/format'
-import { RETURN_KIND_LABELS } from '../../constants/labels'
+import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
 import { PaymentMode } from '../../types'
-import type { Product } from '../../types'
+import type { Bill, Product } from '../../types'
 
 export function ReturnsListPage() {
   const { selectedStoreId } = useStore()
@@ -95,14 +96,27 @@ export function ReturnsListPage() {
 export function ReturnCreatePage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const [billId, setBillId] = useState(Number(params.get('billId') || 0) || '')
+  const { selectedStoreId } = useStore()
+  const [billSearch, setBillSearch] = useState('')
+  const [billId, setBillId] = useState(Number(params.get('billId') || 0) || 0)
   const [reason, setReason] = useState('')
   const [qty, setQty] = useState<Record<number, number>>({})
+  const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
 
+  const searchQ = useQuery({
+    queryKey: ['bills', 'lookup', billSearch, selectedStoreId],
+    queryFn: () => billApi.search({ search: billSearch, storeId: selectedStoreId, pageSize: 8, pageNumber: 1 }),
+    enabled: billSearch.trim().length >= 3,
+  })
   const bill = useQuery({
-    queryKey: queryKeys.bill(Number(billId)),
-    queryFn: () => billApi.get(Number(billId)),
-    enabled: Boolean(Number(billId)),
+    queryKey: queryKeys.bill(billId),
+    queryFn: () => billApi.get(billId),
+    enabled: billId > 0,
+  })
+  const salesPersonsQ = useQuery({
+    queryKey: queryKeys.salesPersons(selectedStoreId),
+    queryFn: () => posApi.salesPersons(selectedStoreId!),
+    enabled: Boolean(selectedStoreId),
   })
 
   const totalReturnQty = Object.values(qty).reduce((s, q) => s + (q || 0), 0)
@@ -110,8 +124,9 @@ export function ReturnCreatePage() {
   const mut = useMutation({
     mutationFn: () =>
       returnApi.create({
-        originalBillId: Number(billId),
+        originalBillId: billId,
         reason,
+        salesPersonId: salesPersonId || undefined,
         items: Object.entries(qty)
           .filter(([, q]) => q > 0)
           .map(([id, q]) => ({ originalBillItemId: Number(id), quantity: q })),
@@ -143,15 +158,32 @@ export function ReturnCreatePage() {
         </div>
         <div className="row g-3 mb-3">
           <div className="col-md-6">
-            <FormField label="Original Bill ID Number" required hint="Enter numeric ID from receipt">
+            <FormField label="Invoice number" required hint="Search by bill number">
               <input
                 className="form-control"
-                type="number"
-                placeholder="e.g. 102"
-                value={billId}
-                onChange={(e) => setBillId(e.target.value ? Number(e.target.value) : '')}
+                placeholder="e.g. STORE01-FY2526-000001"
+                value={billSearch}
+                onChange={(e) => setBillSearch(e.target.value)}
               />
             </FormField>
+            {searchQ.data?.items.length ? (
+              <div className="list-group shadow-sm mt-1">
+                {searchQ.data.items.map((b: Bill) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    className="list-group-item list-group-item-action py-2"
+                    onClick={() => {
+                      setBillId(b.id)
+                      setBillSearch(b.billNumber)
+                      setQty({})
+                    }}
+                  >
+                    <strong>{b.billNumber}</strong> · {b.customerName || 'Walk-in'} · {formatMoney(b.grandTotal)}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div className="col-md-6">
             <FormField label="Return Reason / Remarks" required>
@@ -186,31 +218,58 @@ export function ReturnCreatePage() {
           <div className="form-section-title">
             <i className="bi bi-list-check text-gold" /> Select Items to Return
           </div>
-          <DataTable columns={['Purchased Product Item', 'Sold Quantity', 'Unit Rate', 'Return Quantity']}>
-            {bill.data.items.map((i) => (
-              <tr key={i.id}>
-                <td>
-                  <strong className="text-navy-900">{i.productName}</strong>
-                </td>
-                <td>{i.quantity}</td>
-                <td>{formatMoney(i.rate)}</td>
-                <td style={{ width: '180px' }}>
-                  <div className="input-group input-group-sm">
-                    <input
-                      className="form-control"
-                      type="number"
-                      min={0}
-                      max={i.quantity}
-                      step="any"
-                      value={qty[i.id] ?? 0}
-                      onChange={(e) => setQty((s) => ({ ...s, [i.id]: Number(e.target.value) }))}
-                    />
-                    <span className="input-group-text">/ {i.quantity}</span>
-                  </div>
-                </td>
-              </tr>
-            ))}
+          <DataTable columns={['Purchased Product Item', 'Sold Qty', 'Already processed', 'Status', 'Return Quantity']}>
+            {bill.data.items.map((i) => {
+              const remaining = i.remainingQuantity ?? i.quantity
+              const locked = remaining <= 0
+              return (
+                <tr key={i.id} className={locked ? 'table-secondary' : undefined}>
+                  <td>
+                    <strong className="text-navy-900">{i.productName}</strong>
+                    <div className="small text-muted">{i.productCode}</div>
+                  </td>
+                  <td>{i.quantity}</td>
+                  <td className="small">
+                    Return {i.returnedQuantity ?? 0} · Exchange {i.exchangedQuantity ?? 0}
+                  </td>
+                  <td>
+                    <span className="badge bg-light text-dark border">{ITEM_STATUS_LABELS[i.fulfillmentStatus ?? 1]}</span>
+                  </td>
+                  <td style={{ width: '180px' }}>
+                    {locked ? (
+                      <span className="text-muted small">Not available</span>
+                    ) : (
+                      <div className="input-group input-group-sm">
+                        <input
+                          className="form-control"
+                          type="number"
+                          min={0}
+                          max={remaining}
+                          step="any"
+                          value={qty[i.id] ?? 0}
+                          onChange={(e) => setQty((s) => ({ ...s, [i.id]: Number(e.target.value) }))}
+                        />
+                        <span className="input-group-text">/ {remaining}</span>
+                      </div>
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
           </DataTable>
+
+          <div className="row g-3 mt-2">
+            <div className="col-md-4">
+              <FormField label="Sales person">
+                <select className="form-select" value={salesPersonId} onChange={(e) => setSalesPersonId(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">Current user</option>
+                  {salesPersonsQ.data?.map((sp) => (
+                    <option key={sp.id} value={sp.id}>{sp.fullName}</option>
+                  ))}
+                </select>
+              </FormField>
+            </div>
+          </div>
 
           <div className="d-flex justify-content-end gap-2 pt-3 mt-3 border-top">
             <button
@@ -239,22 +298,34 @@ export function ExchangePage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { selectedStoreId } = useStore()
-  const [billId, setBillId] = useState(Number(params.get('billId') || 0) || '')
+  const [billSearch, setBillSearch] = useState('')
+  const [billId, setBillId] = useState(Number(params.get('billId') || 0) || 0)
   const [reason, setReason] = useState('')
   const [qty, setQty] = useState<Record<number, number>>({})
   const [newItems, setNewItems] = useState<{ product: Product; quantity: number }[]>([])
   const [search, setSearch] = useState('')
   const [cash, setCash] = useState(0)
+  const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
 
+  const searchQ = useQuery({
+    queryKey: ['bills', 'lookup-ex', billSearch, selectedStoreId],
+    queryFn: () => billApi.search({ search: billSearch, storeId: selectedStoreId, pageSize: 8, pageNumber: 1 }),
+    enabled: billSearch.trim().length >= 3,
+  })
   const bill = useQuery({
-    queryKey: queryKeys.bill(Number(billId)),
-    queryFn: () => billApi.get(Number(billId)),
-    enabled: Boolean(Number(billId)),
+    queryKey: queryKeys.bill(billId),
+    queryFn: () => billApi.get(billId),
+    enabled: billId > 0,
   })
   const found = useQuery({
     queryKey: queryKeys.productSearch(search, selectedStoreId),
     queryFn: () => productApi.search(search, selectedStoreId),
     enabled: search.trim().length >= 2,
+  })
+  const salesPersonsQ = useQuery({
+    queryKey: queryKeys.salesPersons(selectedStoreId),
+    queryFn: () => posApi.salesPersons(selectedStoreId!),
+    enabled: Boolean(selectedStoreId),
   })
 
   const returnValue = useMemo(() => {
@@ -268,8 +339,9 @@ export function ExchangePage() {
   const mut = useMutation({
     mutationFn: () =>
       returnApi.exchange({
-        originalBillId: Number(billId),
+        originalBillId: billId,
         reason,
+        salesPersonId: salesPersonId || undefined,
         returnItems: Object.entries(qty)
           .filter(([, q]) => q > 0)
           .map(([id, q]) => ({ originalBillItemId: Number(id), quantity: q })),
@@ -305,15 +377,32 @@ export function ExchangePage() {
         </div>
         <div className="row g-3 mb-3">
           <div className="col-md-6">
-            <FormField label="Original Bill ID Number" required>
+            <FormField label="Invoice number" required>
               <input
                 className="form-control"
-                type="number"
-                placeholder="e.g. 102"
-                value={billId}
-                onChange={(e) => setBillId(e.target.value ? Number(e.target.value) : '')}
+                placeholder="Search original invoice number"
+                value={billSearch}
+                onChange={(e) => setBillSearch(e.target.value)}
               />
             </FormField>
+            {searchQ.data?.items.length ? (
+              <div className="list-group shadow-sm mt-1">
+                {searchQ.data.items.map((b: Bill) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    className="list-group-item list-group-item-action py-2"
+                    onClick={() => {
+                      setBillId(b.id)
+                      setBillSearch(b.billNumber)
+                      setQty({})
+                    }}
+                  >
+                    <strong>{b.billNumber}</strong> · {b.customerName || 'Walk-in'}
+                  </button>
+                ))}
+              </div>
+            ) : null}
           </div>
           <div className="col-md-6">
             <FormField label="Exchange Reason / Remarks" required>
@@ -331,23 +420,32 @@ export function ExchangePage() {
         {bill.data ? (
           <div className="mt-3">
             <h3 className="h6 fw-bold mb-2">Select Items Being Returned:</h3>
-            <DataTable columns={['Sold Product Item', 'Sold Quantity', 'Return Quantity']}>
-              {bill.data.items.map((i) => (
-                <tr key={i.id}>
-                  <td><strong className="text-navy-900">{i.productName}</strong></td>
-                  <td>{i.quantity}</td>
-                  <td style={{ width: '160px' }}>
-                    <input
-                      className="form-control form-control-sm"
-                      type="number"
-                      min={0}
-                      max={i.quantity}
-                      value={qty[i.id] ?? 0}
-                      onChange={(e) => setQty((s) => ({ ...s, [i.id]: Number(e.target.value) }))}
-                    />
-                  </td>
-                </tr>
-              ))}
+            <DataTable columns={['Sold Product Item', 'Sold Qty', 'Status', 'Exchange Quantity']}>
+              {bill.data.items.map((i) => {
+                const remaining = i.remainingQuantity ?? i.quantity
+                const locked = remaining <= 0
+                return (
+                  <tr key={i.id} className={locked ? 'table-secondary' : undefined}>
+                    <td><strong className="text-navy-900">{i.productName}</strong></td>
+                    <td>{i.quantity}</td>
+                    <td><span className="badge bg-light text-dark border">{ITEM_STATUS_LABELS[i.fulfillmentStatus ?? 1]}</span></td>
+                    <td style={{ width: '160px' }}>
+                      {locked ? (
+                        <span className="text-muted small">Already processed</span>
+                      ) : (
+                        <input
+                          className="form-control form-control-sm"
+                          type="number"
+                          min={0}
+                          max={remaining}
+                          value={qty[i.id] ?? 0}
+                          onChange={(e) => setQty((s) => ({ ...s, [i.id]: Number(e.target.value) }))}
+                        />
+                      )}
+                    </td>
+                  </tr>
+                )
+              })}
             </DataTable>
           </div>
         ) : null}
@@ -475,6 +573,19 @@ export function ExchangePage() {
             </div>
           </FormField>
         ) : null}
+
+        <div className="row g-3 mb-3">
+          <div className="col-md-4">
+            <FormField label="Sales person">
+              <select className="form-select" value={salesPersonId} onChange={(e) => setSalesPersonId(e.target.value ? Number(e.target.value) : '')}>
+                <option value="">Current user</option>
+                {salesPersonsQ.data?.map((sp) => (
+                  <option key={sp.id} value={sp.id}>{sp.fullName}</option>
+                ))}
+              </select>
+            </FormField>
+          </div>
+        </div>
 
         <div className="d-flex justify-content-end gap-2 pt-3 mt-3 border-top">
           <button

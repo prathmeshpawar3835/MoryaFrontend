@@ -5,6 +5,7 @@ import toast from 'react-hot-toast'
 import { inventoryApi } from '../../api/inventoryApi'
 import { productApi } from '../../api/productApi'
 import { purchaseApi } from '../../api/purchaseApi'
+import { supplierApi } from '../../api/opsApi'
 import { queryKeys } from '../../api/queryKeys'
 import { useStore } from '../../context/StoreContext'
 import { PageHeader, SearchBox, StatusBadge, CurrencyDisplay } from '../../components/common/Feedback'
@@ -164,12 +165,28 @@ export function StockInPage() {
   const [qty, setQty] = useState(1)
   const [price, setPrice] = useState<number | ''>('')
   const [supplier, setSupplier] = useState('')
+  const [supplierId, setSupplierId] = useState<number | ''>('')
   const [invoice, setInvoice] = useState('')
   const [reason, setReason] = useState('')
+  const suppliersQ = useQuery({
+    queryKey: queryKeys.suppliers({ storeId, pageSize: 100 }),
+    queryFn: () => supplierApi.list({ storeId, pageSize: 100 }),
+    enabled: Boolean(storeId),
+  })
 
   const mut = useMutation({
-    mutationFn: () =>
-      inventoryApi.stockIn({
+    mutationFn: async () => {
+      if (supplierId || supplier.trim()) {
+        return purchaseApi.create({
+          storeId: storeId!,
+          supplierId: supplierId || undefined,
+          supplierName: supplier.trim() || 'Supplier',
+          invoiceNumber: invoice.trim() || `STK-${Date.now()}`,
+          notes: reason || undefined,
+          items: [{ productId: productId!, quantity: qty, purchasePrice: price === '' ? 0 : Number(price) }],
+        })
+      }
+      return inventoryApi.stockIn({
         storeId: storeId!,
         productId: productId!,
         quantity: qty,
@@ -177,7 +194,8 @@ export function StockInPage() {
         supplierName: supplier || undefined,
         invoiceNumber: invoice || undefined,
         reason: reason || undefined,
-      }),
+      })
+    },
     onSuccess: async () => {
       toast.success('Stock inward recorded successfully')
       setProductId(null)
@@ -185,9 +203,11 @@ export function StockInPage() {
       setQty(1)
       setPrice('')
       setSupplier('')
+      setSupplierId('')
       setInvoice('')
       setReason('')
       await qc.invalidateQueries({ queryKey: ['inventory'] })
+      await qc.invalidateQueries({ queryKey: ['purchases'] })
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || 'Failed to record stock inward')
@@ -273,12 +293,36 @@ export function StockInPage() {
             </div>
           </FormField>
 
+          <FormField label="Supplier">
+            <select
+              className="form-select"
+              value={supplierId}
+              onChange={(e) => {
+                const id = e.target.value ? Number(e.target.value) : ''
+                setSupplierId(id)
+                const found = suppliersQ.data?.items.find((s) => s.id === id)
+                if (found) setSupplier(found.name)
+                if (!id) setSupplier('')
+              }}
+            >
+              <option value="">No supplier / warehouse inward</option>
+              {suppliersQ.data?.items.map((s) => (
+                <option key={s.id} value={s.id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
           <FormField label="Supplier / Vendor Name">
             <input
               className="form-control"
               placeholder="e.g. Surat Bullion Traders"
               value={supplier}
-              onChange={(e) => setSupplier(e.target.value)}
+              onChange={(e) => {
+                setSupplier(e.target.value)
+                setSupplierId('')
+              }}
             />
           </FormField>
 

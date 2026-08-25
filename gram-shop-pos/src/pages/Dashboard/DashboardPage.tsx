@@ -53,7 +53,6 @@ export function DashboardPage() {
         }
       />
 
-      {/* KPI Cards Grid */}
       <div className="kpi-grid">
         <div className="kpi">
           <div className="kpi-header">
@@ -63,21 +62,35 @@ export function DashboardPage() {
           <strong>
             <CurrencyDisplay value={d.todaySales} />
           </strong>
+          <small className="text-muted">{d.todayBills} bills · {d.todayCustomers} customers</small>
         </div>
         <div className="kpi">
           <div className="kpi-header">
-            <span>Today's Bills</span>
-            <div className="kpi-icon"><i className="bi bi-receipt" /></div>
+            <span>Monthly Sales</span>
+            <div className="kpi-icon"><i className="bi bi-calendar3" /></div>
           </div>
-          <strong>{d.todayBills}</strong>
+          <strong><CurrencyDisplay value={d.monthlySales ?? 0} /></strong>
+          <small className="text-muted">{d.monthlyBills ?? 0} bills</small>
         </div>
         <div className="kpi">
           <div className="kpi-header">
-            <span>Customers Served</span>
-            <div className="kpi-icon"><i className="bi bi-people" /></div>
+            <span>Today's Return</span>
+            <div className="kpi-icon"><i className="bi bi-arrow-return-left" /></div>
           </div>
-          <strong>{d.todayCustomers}</strong>
+          <strong><CurrencyDisplay value={d.todayReturns ?? 0} /></strong>
+          <small className="text-muted">{d.todayReturnCount ?? 0} notes · month <CurrencyDisplay value={d.monthlyReturns ?? 0} /></small>
         </div>
+        <div className="kpi">
+          <div className="kpi-header">
+            <span>Today's Exchange</span>
+            <div className="kpi-icon"><i className="bi bi-arrow-left-right" /></div>
+          </div>
+          <strong><CurrencyDisplay value={d.todayExchanges ?? 0} /></strong>
+          <small className="text-muted">{d.todayExchangeCount ?? 0} notes · month <CurrencyDisplay value={d.monthlyExchanges ?? 0} /></small>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
         <div className="kpi">
           <div className="kpi-header">
             <span>Pending Dues (Udhaar)</span>
@@ -86,6 +99,43 @@ export function DashboardPage() {
           <strong className="text-danger">
             <CurrencyDisplay value={d.pendingDues} />
           </strong>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Customers</span></div>
+          <strong>{d.totalCustomers ?? 0}</strong>
+          <small className="text-muted">{d.purchasingCustomers ?? 0} purchased · ratio {((d.customerPurchaseRatio ?? 0) * 100).toFixed(0)}%</small>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Avg bill value</span></div>
+          <strong><CurrencyDisplay value={d.averageBillValue ?? 0} /></strong>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Inventory</span></div>
+          <strong>{d.totalInventoryQuantity ?? 0}</strong>
+          <small className="text-muted">{d.totalInventoryProducts ?? 0} SKUs · {d.lowStockCount ?? 0} low · {d.outOfStockCount ?? 0} out</small>
+        </div>
+      </div>
+
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="kpi-header"><span>Today's referrals</span></div>
+          <strong>{d.todayReferralCount ?? 0}</strong>
+          <small className="text-muted">Sales <CurrencyDisplay value={d.todayReferralSales ?? 0} /></small>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Today's referral cost</span></div>
+          <strong><CurrencyDisplay value={d.todayReferralCost ?? 0} /></strong>
+          <small className="text-muted">Discount <CurrencyDisplay value={d.todayReferralDiscount ?? 0} /></small>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Monthly referrals</span></div>
+          <strong>{d.monthlyReferralCount ?? 0}</strong>
+          <small className="text-muted">Sales <CurrencyDisplay value={d.monthlyReferralSales ?? 0} /></small>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Total referral cost</span></div>
+          <strong><CurrencyDisplay value={d.totalReferralCost ?? 0} /></strong>
+          <small className="text-muted">Month <CurrencyDisplay value={d.monthlyReferralCost ?? 0} /></small>
         </div>
       </div>
 
@@ -162,6 +212,78 @@ export function DashboardPage() {
             )}
           </div>
         </div>
+
+        {d.referralChartData?.length ? (
+          <div className="col-lg-6">
+            <div className="card-panel h-100">
+              <h2>
+                <i className="bi bi-gift text-warning" /> Referral Trend
+              </h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <LineChart data={d.referralChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke="#64748b" fontSize={12} />
+                  <YAxis stroke="#64748b" fontSize={12} />
+                  <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Referral sales']} />
+                  <Line type="monotone" dataKey="sales" stroke="#173b68" strokeWidth={3} dot={{ r: 3 }} />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ) : null}
+
+        {d.exchangeReturnChart?.length ? (
+          <div className="col-lg-6">
+            <div className="card-panel h-100">
+              <h2>
+                <i className="bi bi-arrow-left-right text-primary" /> Exchange vs Return
+              </h2>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={d.exchangeReturnChart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
+                  <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke="#64748b" fontSize={12} />
+                  <YAxis stroke="#64748b" fontSize={12} />
+                  <Tooltip />
+                  <Legend />
+                  <Bar dataKey="exchangeAmount" name="Exchange" fill="#d4af37" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="returnAmount" name="Return" fill="#64748b" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        ) : null}
+
+        {d.topReferrers?.length ? (
+          <div className="col-lg-6">
+            <div className="card-panel h-100">
+              <h2>
+                <i className="bi bi-people text-warning" /> Top Referrers
+              </h2>
+              <div className="table-responsive">
+                <table className="table table-sm app-table mb-0">
+                  <thead>
+                    <tr>
+                      <th>Customer</th>
+                      <th>Code</th>
+                      <th>Count</th>
+                      <th className="text-end">Benefit</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {d.topReferrers.slice(0, 7).map((r) => (
+                      <tr key={r.customerId}>
+                        <td className="fw-semibold">{r.customerName}</td>
+                        <td className="font-monospace small">{r.customerCode}</td>
+                        <td>{r.referralCount}</td>
+                        <td className="text-end"><CurrencyDisplay value={r.benefitEarned} /></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        ) : null}
 
         <div className="col-lg-6">
           <div className="card-panel h-100">

@@ -23,6 +23,8 @@ export const customerApi = {
     (await axiosClient.put<Customer>(`/customers/${id}`, body)).data,
   search: async (query: string, storeId?: number | null) =>
     (await axiosClient.get<Customer[]>('/customers/search', { params: cleanParams({ query, storeId }) })).data,
+  byMobile: async (mobile: string, storeId?: number | null) =>
+    (await axiosClient.get<Customer>('/customers/by-mobile', { params: cleanParams({ mobile, storeId }) })).data,
   history: async (id: number) => (await axiosClient.get<CustomerHistory>(`/customers/${id}/history`)).data,
   ledger: async (id: number, query: PagedQuery) =>
     (await axiosClient.get<PagedResponse<LedgerEntry>>(`/customers/${id}/ledger`, { params: cleanParams({ ...query }) })).data,

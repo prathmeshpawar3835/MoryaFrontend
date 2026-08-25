@@ -27,6 +27,7 @@ export interface CurrentUser {
   userName: string
   fullName: string
   role: string
+  email?: string
   assignedStores: AssignedStore[]
   mustChangePassword: boolean
 }

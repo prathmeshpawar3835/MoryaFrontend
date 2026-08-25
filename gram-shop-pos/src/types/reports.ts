@@ -8,11 +8,59 @@ export interface Dashboard {
   todayBills: number
   todayCustomers: number
   pendingDues: number
+  monthlySales: number
+  monthlyBills: number
+  todayReturns: number
+  todayReturnCount: number
+  monthlyReturns: number
+  monthlyReturnCount: number
+  todayExchanges: number
+  todayExchangeCount: number
+  monthlyExchanges: number
+  monthlyExchangeCount: number
+  totalCustomers: number
+  purchasingCustomers: number
+  customerPurchaseRatio: number
+  averageBillValue: number
+  todayReferralCount: number
+  todayReferralSales: number
+  todayReferralDiscount: number
+  todayReferralCost: number
+  monthlyReferralCount: number
+  monthlyReferralSales: number
+  monthlyReferralDiscount: number
+  monthlyReferralCost: number
+  totalReferralCost: number
+  totalInventoryProducts: number
+  totalInventoryQuantity: number
+  lowStockCount: number
+  outOfStockCount: number
+  topReferrers: TopReferrer[]
   lowStockProducts: InventoryItem[]
   topSellingProducts: ProductSalesRow[]
+  slowMovingProducts: ProductSalesRow[]
   recentBills: Bill[]
   paymentModeSummary: PaymentModeSummary[]
   salesChartData: SalesChartPoint[]
+  referralChartData: SalesChartPoint[]
+  exchangeReturnChart: ExchangeReturnChartPoint[]
+}
+
+export interface TopReferrer {
+  customerId: number
+  customerName: string
+  customerCode: string
+  referralCount: number
+  referralSales: number
+  benefitEarned: number
+}
+
+export interface ExchangeReturnChartPoint {
+  date: string
+  exchangeAmount: number
+  returnAmount: number
+  exchangeCount: number
+  returnCount: number
 }
 
 export interface PaymentModeSummary {
@@ -54,6 +102,7 @@ export interface InventoryReportRow {
   purchaseValue: number
   sellingValue: number
   isLowStock: boolean
+  isOutOfStock?: boolean
 }
 
 export interface CustomerDueRow {
@@ -69,7 +118,10 @@ export interface CustomerDueRow {
 export interface ReferralReportRow {
   referrerCustomerId: number
   referrerName: string
+  referrerCode?: string
   referralCount: number
+  referralSales?: number
+  discountGiven?: number
   pendingRewards: number
   creditedRewards: number
   redeemedRewards: number
@@ -89,6 +141,7 @@ export interface ProfitReportRow {
 
 export interface ReportQuery extends PagedQuery {
   period?: string
+  salesPersonId?: number
 }
 
 export interface TaxSetting {

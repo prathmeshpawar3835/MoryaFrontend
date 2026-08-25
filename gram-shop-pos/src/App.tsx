@@ -51,6 +51,11 @@ const TaxSettingsPage = lazy(() => import('./pages/Settings/SettingsPages').then
 const ReferralSettingsPage = lazy(() => import('./pages/Settings/SettingsPages').then((m) => ({ default: m.ReferralSettingsPage })))
 const BusinessSettingsPage = lazy(() => import('./pages/Settings/SettingsPages').then((m) => ({ default: m.BusinessSettingsPage })))
 const AuditPage = lazy(() => import('./pages/Settings/SettingsPages').then((m) => ({ default: m.AuditPage })))
+const CustomerLedgerSearchPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.CustomerLedgerSearchPage })))
+const DiscountsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.DiscountsPage })))
+const SuppliersPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.SuppliersPage })))
+const RepairsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.RepairsPage })))
+const ProductAnalyticsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.ProductAnalyticsPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -101,14 +106,17 @@ export default function App() {
                     <Route path="/inventory/purchases" element={<PurchasesPage />} />
                     <Route path="/customers" element={<CustomersPage />} />
                     <Route path="/customers/dues" element={<DuesPage />} />
+                    <Route path="/customers/ledger" element={<CustomerLedgerSearchPage />} />
                     <Route path="/customers/:id" element={<CustomerProfilePage />} />
                     <Route path="/customers/:id/ledger" element={<CustomerLedgerPage />} />
                     <Route path="/referrals" element={<ReferralsPage />} />
                     <Route path="/returns" element={<ReturnsListPage />} />
                     <Route path="/returns/new" element={<ReturnCreatePage />} />
                     <Route path="/returns/exchange" element={<ExchangePage />} />
+                    <Route path="/repairs" element={<RepairsPage />} />
                     <Route path="/reports/sales" element={<SalesReportPage />} />
                     <Route path="/reports/products" element={<ProductSalesReportPage />} />
+                    <Route path="/reports/product-analytics" element={<ProductAnalyticsPage />} />
                     <Route path="/reports/inventory" element={<InventoryReportPage />} />
                     <Route path="/reports/purchases" element={<PurchasesReportPage />} />
                     <Route path="/reports/returns" element={<ReturnsReportPage />} />
@@ -121,6 +129,9 @@ export default function App() {
                     <Route element={<RoleProtectedRoute feature="inventory.transfer" />}>
                       <Route path="/inventory/transfer" element={<StockTransferPage />} />
                     </Route>
+                    <Route element={<RoleProtectedRoute feature="suppliers" />}>
+                      <Route path="/inventory/suppliers" element={<SuppliersPage />} />
+                    </Route>
                     <Route element={<RoleProtectedRoute feature="reports.profit" />}>
                       <Route path="/reports/profit" element={<ProfitReportPage />} />
                     </Route>
@@ -132,6 +143,9 @@ export default function App() {
                       <Route path="/settings/referrals" element={<ReferralSettingsPage />} />
                       <Route path="/settings/business" element={<BusinessSettingsPage />} />
                       <Route path="/settings/audit" element={<AuditPage />} />
+                    </Route>
+                    <Route element={<RoleProtectedRoute feature="discounts" />}>
+                      <Route path="/settings/discounts" element={<DiscountsPage />} />
                     </Route>
                   </Route>
                 </Route>

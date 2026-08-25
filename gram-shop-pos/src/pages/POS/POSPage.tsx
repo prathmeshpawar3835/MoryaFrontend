@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
@@ -6,14 +6,16 @@ import { productApi } from '../../api/productApi'
 import { customerApi } from '../../api/customerApi'
 import { posApi } from '../../api/posApi'
 import { billApi } from '../../api/billApi'
+import { referralApi } from '../../api/referralApi'
+import { discountApi } from '../../api/opsApi'
 import { queryKeys } from '../../api/queryKeys'
 import { useStore } from '../../context/StoreContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useHotkeys } from '../../hooks/useHotkeys'
 import { calculateBill } from '../../utils/billCalc'
 import { formatMoney } from '../../utils/format'
-import { PaymentMode } from '../../types'
-import type { Bill, Customer, Product } from '../../types'
+import { DiscountKind, PaymentMode, RewardType } from '../../types'
+import type { Bill, Customer, Product, StoreDiscount } from '../../types'
 import { Modal } from '../../components/common/Modal'
 import { InvoiceView } from '../../components/print/InvoiceView'
 import { StoreSelector } from '../../components/common/StoreSelector'
@@ -48,6 +50,11 @@ export function POSPage() {
   const customerDebounced = useDebounce(customerQuery, 250)
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [referralCode, setReferralCode] = useState('')
+  const [newCustomerName, setNewCustomerName] = useState('')
+  const [newCustomerAddress, setNewCustomerAddress] = useState('')
+  const [createOpen, setCreateOpen] = useState(false)
+  const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
+  const [storeDiscountId, setStoreDiscountId] = useState<number | ''>('')
   const [payments, setPayments] = useState<Record<number, number>>({ [PaymentMode.Cash]: 0 })
   const [refs, setRefs] = useState<Record<number, string>>({})
   const [walletRedeem, setWalletRedeem] = useState(0)
@@ -76,6 +83,45 @@ export function POSPage() {
     enabled: Boolean(customer),
   })
 
+  const mobileExact = customerDebounced.trim()
+  const isMobileQuery = /^\d{10}$/.test(mobileExact)
+  const byMobileQ = useQuery({
+    queryKey: ['customers', 'by-mobile', mobileExact, storeId],
+    enabled: isMobileQuery && !customer,
+    queryFn: async () => {
+      try {
+        return await customerApi.byMobile(mobileExact, storeId)
+      } catch {
+        return null
+      }
+    },
+  })
+
+  const salesPersonsQ = useQuery({
+    queryKey: queryKeys.salesPersons(storeId),
+    queryFn: () => posApi.salesPersons(storeId!),
+    enabled: Boolean(storeId),
+  })
+
+  const discountsQ = useQuery({
+    queryKey: queryKeys.discounts(storeId, true),
+    queryFn: () => discountApi.list(storeId, true),
+    enabled: Boolean(storeId),
+  })
+
+  const referralQ = useQuery({
+    queryKey: queryKeys.referralValidate(referralCode.trim(), storeId),
+    queryFn: () => referralApi.validate(referralCode.trim(), customer?.id, storeId),
+    enabled: referralCode.trim().length >= 4,
+  })
+
+  useEffect(() => {
+    if (byMobileQ.data) {
+      setCustomer(byMobileQ.data)
+      setCustomerQuery('')
+    }
+  }, [byMobileQ.data])
+
   useQuery({
     queryKey: ['pos', 'resume', heldBillId],
     enabled: Boolean(heldBillId),
@@ -96,6 +142,23 @@ export function POSPage() {
     },
   })
 
+  const selectedDiscount: StoreDiscount | undefined = discountsQ.data?.find((d) => d.id === storeDiscountId)
+  const eligible = useMemo(
+    () => cart.reduce((s, l) => s + l.quantity * l.product.sellingPrice - l.discountAmount, 0),
+    [cart],
+  )
+  const storeDiscountAmount = selectedDiscount
+    ? selectedDiscount.discountKind === DiscountKind.Percentage
+      ? Math.round((eligible * selectedDiscount.value) / 100 * 100) / 100
+      : selectedDiscount.value
+    : 0
+  const referralApplies = Boolean(referralQ.data?.valid)
+  const referralDiscountPreview = referralApplies
+    ? referralQ.data!.rewardType === RewardType.Percentage
+      ? Math.round((eligible * referralQ.data!.newCustomerDiscountRate) / 100 * 100) / 100
+      : referralQ.data!.newCustomerDiscountRate
+    : 0
+
   const totals = useMemo(
     () =>
       calculateBill(
@@ -105,9 +168,9 @@ export function POSPage() {
           discountAmount: l.discountAmount,
           taxPercent: l.product.taxPercent,
         })),
-        billDiscount,
+        billDiscount + storeDiscountAmount + referralDiscountPreview,
       ),
-    [cart, billDiscount],
+    [cart, billDiscount, storeDiscountAmount, referralDiscountPreview],
   )
 
   const paidNonCredit = Object.entries(payments)
@@ -147,6 +210,10 @@ export function POSPage() {
     setNotes('')
     setCustomer(null)
     setReferralCode('')
+    setNewCustomerName('')
+    setNewCustomerAddress('')
+    setSalesPersonId('')
+    setStoreDiscountId('')
     setPayments({ [PaymentMode.Cash]: 0 })
     setRefs({})
     setWalletRedeem(0)
@@ -184,6 +251,8 @@ export function POSPage() {
         heldBillId,
         referralCode: referralCode || undefined,
         walletRedeemAmount: walletRedeem,
+        salesPersonId: salesPersonId || undefined,
+        storeDiscountId: storeDiscountId || undefined,
         items: cart.map((l) => ({ productId: l.product.id, quantity: l.quantity, discountAmount: l.discountAmount })),
         payments: Object.entries(payments)
           .filter(([, amt]) => Number(amt) > 0)
@@ -201,6 +270,26 @@ export function POSPage() {
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || 'Failed to complete bill')
+    },
+  })
+
+  const createCustomerMut = useMutation({
+    mutationFn: () =>
+      customerApi.create({
+        storeId: storeId!,
+        name: newCustomerName.trim(),
+        mobileNumber: mobileExact || customerQuery.trim(),
+        address: newCustomerAddress || undefined,
+        referralCode: referralCode || undefined,
+      }),
+    onSuccess: (created) => {
+      setCustomer(created)
+      setCustomerQuery('')
+      setCreateOpen(false)
+      toast.success(`Customer ${created.name} created and selected`)
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Could not create customer')
     },
   })
 
@@ -438,27 +527,27 @@ export function POSPage() {
           {/* Customer Selection */}
           <div>
             <label className="form-label d-flex justify-content-between align-items-center">
-              <span>Customer Details</span>
+              <span>Customer mobile</span>
               <span className="shortcut-pill text-dark bg-light border">F4</span>
             </label>
             <div className="input-group">
               <span className="input-group-text bg-light text-muted border-end-0">
-                <i className="bi bi-person" />
+                <i className="bi bi-phone" />
               </span>
               <input
                 ref={customerRef}
                 className="form-control border-start-0"
-                placeholder="Search mobile number or name"
-                value={customer ? `${customer.name} (${customer.mobileNumber})` : customerQuery}
+                placeholder="Enter 10-digit mobile number"
+                value={customer ? `${customer.mobileNumber}` : customerQuery}
                 onChange={(e) => {
                   setCustomer(null)
-                  setCustomerQuery(e.target.value)
+                  setCustomerQuery(e.target.value.replace(/\D/g, '').slice(0, 10))
                 }}
               />
               {customer ? (
                 <button
                   type="button"
-                  className="btn btn-outline-secondary border-start-0"
+                  className="btn btn-outline-secondary"
                   onClick={() => {
                     setCustomer(null)
                     setCustomerQuery('')
@@ -470,8 +559,7 @@ export function POSPage() {
               ) : null}
             </div>
 
-            {/* Customer Search Dropdown */}
-            {!customer && customerQ.data?.length ? (
+            {!customer && customerQuery.trim().length >= 3 && !isMobileQuery && customerQ.data?.length ? (
               <div className="list-group shadow-sm mt-1" style={{ maxHeight: '160px', overflowY: 'auto' }}>
                 {customerQ.data.map((c) => (
                   <button
@@ -486,37 +574,91 @@ export function POSPage() {
                     <div>
                       <strong>{c.name}</strong> · {c.mobileNumber}
                     </div>
-                    <span className={`badge ${c.outstandingBalance > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'}`}>
-                      Due: {formatMoney(c.outstandingBalance)}
-                    </span>
+                    <span className="badge bg-light text-dark border">{c.customerCode || c.referralCode}</span>
                   </button>
                 ))}
               </div>
             ) : null}
 
-            {/* Customer Wallet & Outstanding Status Pill */}
+            {!customer && isMobileQuery && byMobileQ.isFetched && !byMobileQ.data ? (
+              <div className="alert alert-warning py-2 px-3 mt-2 mb-0 small">
+                Customer not found for {mobileExact}.
+                <button type="button" className="btn btn-sm btn-gold ms-2" onClick={() => setCreateOpen(true)}>
+                  Create customer
+                </button>
+              </div>
+            ) : null}
+
             {customer ? (
-              <div className="d-flex gap-2 mt-2">
-                <span className="badge bg-primary-subtle text-primary border border-primary-subtle py-1 px-2">
-                  <i className="bi bi-wallet2 me-1" /> Wallet: {formatMoney(walletQ.data?.balance ?? customer.walletBalance)}
-                </span>
-                <span className={`badge ${customer.outstandingBalance > 0 ? 'bg-danger-subtle text-danger border border-danger-subtle' : 'bg-success-subtle text-success border border-success-subtle'} py-1 px-2`}>
-                  <i className="bi bi-journal-text me-1" /> Due: {formatMoney(customer.outstandingBalance)}
-                </span>
+              <div className="border rounded-3 p-2 mt-2 bg-light">
+                <div className="fw-bold text-navy-900">{customer.name}</div>
+                <div className="small text-muted">
+                  {customer.mobileNumber} · Code {customer.customerCode || customer.referralCode}
+                </div>
+                <div className="d-flex flex-wrap gap-2 mt-2">
+                  <span className="badge bg-primary-subtle text-primary border">
+                    Credit: {formatMoney(walletQ.data?.balance ?? customer.walletBalance)}
+                  </span>
+                  <span className={`badge ${customer.outstandingBalance > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'} border`}>
+                    Due: {formatMoney(customer.outstandingBalance)}
+                  </span>
+                </div>
               </div>
             ) : null}
           </div>
 
-          {/* Referral Code */}
           <div>
-            <label className="form-label">Referral Code (Optional)</label>
+            <label className="form-label">Referral / customer code</label>
             <input
               className="form-control form-control-sm"
-              placeholder="e.g. REF123"
+              placeholder="Existing customer code"
               value={referralCode}
-              onChange={(e) => setReferralCode(e.target.value)}
+              onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
             />
+            {referralCode.trim().length >= 4 && referralQ.data ? (
+              referralQ.data.valid ? (
+                <div className="alert alert-success py-2 px-3 mt-1 mb-0 small">
+                  Valid referral: {referralQ.data.referrerName} ({referralQ.data.referrerCode})
+                </div>
+              ) : (
+                <div className="alert alert-danger py-2 px-3 mt-1 mb-0 small">{referralQ.data.message}</div>
+              )
+            ) : null}
           </div>
+
+          <div>
+            <label className="form-label">Sales person</label>
+            <select
+              className="form-select form-select-sm"
+              value={salesPersonId}
+              onChange={(e) => setSalesPersonId(e.target.value ? Number(e.target.value) : '')}
+            >
+              <option value="">Current user</option>
+              {salesPersonsQ.data?.map((sp) => (
+                <option key={sp.id} value={sp.id}>
+                  {sp.fullName}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {discountsQ.data?.length ? (
+            <div>
+              <label className="form-label">Store discount</label>
+              <select
+                className="form-select form-select-sm"
+                value={storeDiscountId}
+                onChange={(e) => setStoreDiscountId(e.target.value ? Number(e.target.value) : '')}
+              >
+                <option value="">None</option>
+                {discountsQ.data.map((d) => (
+                  <option key={d.id} value={d.id}>
+                    {d.name} ({d.discountKind === DiscountKind.Percentage ? `${d.value}%` : formatMoney(d.value)})
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : null}
 
           {/* Bill Overall Discount */}
           <div>
@@ -551,6 +693,18 @@ export function POSPage() {
               <span>Total Discount</span>
               <span className="text-danger">- {formatMoney(totals.itemDiscountTotal + totals.billDiscount)}</span>
             </div>
+            {referralDiscountPreview > 0 ? (
+              <div>
+                <span>Referral discount</span>
+                <span className="text-success">- {formatMoney(referralDiscountPreview)}</span>
+              </div>
+            ) : null}
+            {storeDiscountAmount > 0 ? (
+              <div>
+                <span>Store discount</span>
+                <span className="text-success">- {formatMoney(storeDiscountAmount)}</span>
+              </div>
+            ) : null}
             <div>
               <span>GST / Tax Amount</span>
               <span>+ {formatMoney(totals.taxAmount)}</span>
@@ -650,7 +804,7 @@ export function POSPage() {
               {customer ? (
                 <div className="p-2 border rounded-2 bg-primary-subtle">
                   <label className="form-label mb-1 fw-bold text-primary">
-                    <i className="bi bi-wallet2 me-1" /> Redeem from Customer Wallet (Available: {formatMoney(walletQ.data?.balance ?? 0)})
+                    <i className="bi bi-wallet2 me-1" /> Use Customer Credit (Available: {formatMoney(walletQ.data?.balance ?? 0)})
                   </label>
                   <div className="input-group input-group-sm">
                     <span className="input-group-text">₹</span>
@@ -712,6 +866,27 @@ export function POSPage() {
               </button>
             </div>
           </div>
+        </div>
+      </Modal>
+
+      <Modal open={createOpen} title="Create customer" onClose={() => setCreateOpen(false)}>
+        <div className="stack-form">
+          <label className="form-label">Mobile number</label>
+          <input className="form-control" value={mobileExact || customerQuery} disabled />
+          <label className="form-label">Customer name *</label>
+          <input className="form-control" value={newCustomerName} onChange={(e) => setNewCustomerName(e.target.value)} />
+          <label className="form-label">Address</label>
+          <input className="form-control" value={newCustomerAddress} onChange={(e) => setNewCustomerAddress(e.target.value)} />
+          <label className="form-label">Referral code (optional)</label>
+          <input className="form-control" value={referralCode} onChange={(e) => setReferralCode(e.target.value.toUpperCase())} />
+          <button
+            type="button"
+            className="btn btn-gold"
+            disabled={!newCustomerName.trim() || createCustomerMut.isPending}
+            onClick={() => createCustomerMut.mutate()}
+          >
+            {createCustomerMut.isPending ? 'Saving…' : 'Save and select'}
+          </button>
         </div>
       </Modal>
 

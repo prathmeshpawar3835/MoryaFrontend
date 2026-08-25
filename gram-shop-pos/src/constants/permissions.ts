@@ -17,6 +17,9 @@ export type FeatureKey =
   | 'customers'
   | 'returns'
   | 'referrals'
+  | 'repairs'
+  | 'suppliers'
+  | 'discounts'
   | 'reports'
   | 'reports.profit'
   | 'settings'
@@ -43,6 +46,9 @@ export const FEATURE_ROLES: Record<FeatureKey, string[]> = {
   customers: allRoles,
   returns: allRoles,
   referrals: allRoles,
+  repairs: allRoles,
+  suppliers: [Roles.Admin],
+  discounts: [Roles.Admin],
   reports: allRoles,
   'reports.profit': [Roles.Admin],
   settings: [Roles.Admin],

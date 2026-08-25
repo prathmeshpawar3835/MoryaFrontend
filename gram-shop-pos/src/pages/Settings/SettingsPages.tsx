@@ -583,11 +583,11 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
             </div>
           </div>
           <div className="form-grid">
-            <FormField label="New Customer Welcome Reward (₹)">
-              <input className="form-control" type="number" min={0} value={data.newCustomerReward} onChange={(e) => set('newCustomerReward', Number(e.target.value))} />
+            <FormField label={data.rewardType === 2 ? 'New customer discount (%)' : 'New customer welcome reward (₹)'} hint="Applied on the referred customer's qualifying sale. Default 10% when type is percentage.">
+              <input className="form-control" type="number" min={0} step="any" value={data.newCustomerReward} onChange={(e) => set('newCustomerReward', Number(e.target.value))} />
             </FormField>
-            <FormField label="Referrer Member Reward (₹)">
-              <input className="form-control" type="number" min={0} value={data.referrerReward} onChange={(e) => set('referrerReward', Number(e.target.value))} />
+            <FormField label={data.rewardType === 2 ? 'Referring customer benefit (%)' : 'Referrer member reward (₹)'} hint="Credited to the referrer ledger. Default 5% when type is percentage.">
+              <input className="form-control" type="number" min={0} step="any" value={data.referrerReward} onChange={(e) => set('referrerReward', Number(e.target.value))} />
             </FormField>
             <FormField label="Reward Calculation Type">
               <select className="form-select" value={data.rewardType} onChange={(e) => set('rewardType', Number(e.target.value))}>
