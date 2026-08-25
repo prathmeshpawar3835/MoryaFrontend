@@ -583,10 +583,10 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
             </div>
           </div>
           <div className="form-grid">
-            <FormField label={data.rewardType === 2 ? 'New customer discount (%)' : 'New customer welcome reward (₹)'} hint="Applied on the referred customer's qualifying sale. Default 10% when type is percentage.">
+            <FormField label={data.rewardType === 2 ? 'New customer referral discount (%)' : 'New customer welcome reward (₹)'} hint="Applied immediately on this first referred invoice only. Default 10% when type is percentage. Never auto-applied to future bills.">
               <input className="form-control" type="number" min={0} step="any" value={data.newCustomerReward} onChange={(e) => set('newCustomerReward', Number(e.target.value))} />
             </FormField>
-            <FormField label={data.rewardType === 2 ? 'Referring customer benefit (%)' : 'Referrer member reward (₹)'} hint="Credited to the referrer ledger. Default 5% when type is percentage.">
+            <FormField label={data.rewardType === 2 ? 'Referring customer benefit (%)' : 'Referrer member reward (₹)'} hint="Credited to the referring customer's ledger/wallet, linked to this invoice. Default 5% when type is percentage.">
               <input className="form-control" type="number" min={0} step="any" value={data.referrerReward} onChange={(e) => set('referrerReward', Number(e.target.value))} />
             </FormField>
             <FormField label="Birthday offer discount (%)" hint="Applied automatically on the customer's birthday when date of birth is stored. 0 disables the offer.">

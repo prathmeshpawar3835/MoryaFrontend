@@ -186,11 +186,12 @@ export function POSPage() {
       ? Math.round((eligible * selectedDiscount.value) / 100 * 100) / 100
       : selectedDiscount.value
     : 0
-  const referralApplies = Boolean(referralQ.data?.valid)
+  const referralApplies = Boolean(customer && !customer.hasCompletedSale && referralQ.data?.valid)
+  const referralRate = referralApplies ? referralQ.data!.newCustomerDiscountRate : 0
   const referralDiscountPreview = referralApplies
     ? referralQ.data!.rewardType === RewardType.Percentage
-      ? Math.round((eligible * referralQ.data!.newCustomerDiscountRate) / 100 * 100) / 100
-      : referralQ.data!.newCustomerDiscountRate
+      ? Math.round((eligible * referralRate) / 100 * 100) / 100
+      : referralRate
     : 0
   const birthdayPercent = settingsQ.data?.birthdayDiscountPercent ?? 0
   const birthdayDiscountPreview =
@@ -877,9 +878,18 @@ export function POSPage() {
             />
             {referralCode.trim().length >= 4 && referralQ.data ? (
               referralQ.data.valid ? (
-                <div className="alert alert-success py-2 px-3 mt-1 mb-0 small">
-                  Valid referral: {referralQ.data.referrerName} ({referralQ.data.referrerCode})
-                </div>
+                customer?.hasCompletedSale ? (
+                  <div className="alert alert-warning py-2 px-3 mt-1 mb-0 small">
+                    Referral is valid for {referralQ.data.referrerName} ({referralQ.data.referrerCode}), but the new-customer discount applies only on this customer's first invoice.
+                  </div>
+                ) : (
+                  <div className="alert alert-success py-2 px-3 mt-1 mb-0 small">
+                    Valid referral: {referralQ.data.referrerName} ({referralQ.data.referrerCode}).
+                    {referralQ.data.rewardType === RewardType.Percentage
+                      ? ` ${referralQ.data.newCustomerDiscountRate}% off this invoice only.`
+                      : ` ${formatMoney(referralQ.data.newCustomerDiscountRate)} off this invoice only.`}
+                  </div>
+                )
               ) : (
                 <div className="alert alert-danger py-2 px-3 mt-1 mb-0 small">{referralQ.data.message}</div>
               )
@@ -949,28 +959,48 @@ export function POSPage() {
               <span>Items Subtotal</span>
               <span>{formatMoney(totals.subtotal)}</span>
             </div>
-            <div>
-              <span>Total Discount</span>
-              <span className="text-danger">- {formatMoney(totals.itemDiscountTotal + totals.billDiscount)}</span>
-            </div>
+            {totals.itemDiscountTotal > 0 ? (
+              <div>
+                <span>Item Discount</span>
+                <span className="text-danger">- {formatMoney(totals.itemDiscountTotal)}</span>
+              </div>
+            ) : null}
             {referralDiscountPreview > 0 ? (
               <div>
-                <span>Referral discount</span>
+                <span>
+                  Referral discount
+                  {referralQ.data?.rewardType === RewardType.Percentage ? ` (${referralRate}%)` : ''}
+                </span>
                 <span className="text-success">- {formatMoney(referralDiscountPreview)}</span>
               </div>
             ) : null}
             {birthdayDiscountPreview > 0 ? (
               <div>
-                <span>Birthday offer</span>
+                <span>Birthday offer{birthdayPercent ? ` (${birthdayPercent}%)` : ''}</span>
                 <span className="text-success">- {formatMoney(birthdayDiscountPreview)}</span>
               </div>
             ) : null}
             {storeDiscountAmount > 0 ? (
               <div>
-                <span>Store discount</span>
+                <span>
+                  {selectedDiscount?.name || 'Store discount'}
+                  {selectedDiscount?.discountKind === DiscountKind.Percentage ? ` (${selectedDiscount.value}%)` : ''}
+                </span>
                 <span className="text-success">- {formatMoney(storeDiscountAmount)}</span>
               </div>
             ) : null}
+            {billDiscount > 0 ? (
+              <div>
+                <span>Other Discount</span>
+                <span className="text-danger">- {formatMoney(billDiscount)}</span>
+              </div>
+            ) : null}
+            <div>
+              <span>Total Discount</span>
+              <span className="text-danger">
+                - {formatMoney(totals.itemDiscountTotal + billDiscount + storeDiscountAmount + referralDiscountPreview + birthdayDiscountPreview)}
+              </span>
+            </div>
             <div>
               <span>GST / Tax Amount</span>
               <span>+ {formatMoney(totals.taxAmount)}</span>

@@ -1,22 +1,31 @@
-import type { Invoice } from '../../types'
+import type { Invoice, InvoiceDiscountLine } from '../../types'
 import { formatDateTime, formatMoney } from '../../utils/format'
 import { PAYMENT_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
 
-function Line({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
+function Line({ label, value, danger, hint }: { label: string; value: number; danger?: boolean; hint?: string }) {
   if (!value) return null
   return (
-    <div className="d-flex justify-content-between mb-1 small text-muted">
-      <span>{label}</span>
-      <span className={danger ? 'text-danger' : undefined}>
-        {danger ? '- ' : ''}
-        {formatMoney(value)}
-      </span>
+    <div className="mb-1">
+      <div className="d-flex justify-content-between small text-muted">
+        <span>{label}</span>
+        <span className={danger ? 'text-danger' : undefined}>
+          {danger ? '- ' : ''}
+          {formatMoney(value)}
+        </span>
+      </div>
+      {hint ? <div className="small text-muted" style={{ fontSize: '0.7rem' }}>{hint}</div> : null}
     </div>
   )
 }
 
+function discountLabel(line: InvoiceDiscountLine) {
+  return line.percent ? `${line.name} (${line.percent}%)` : line.name
+}
+
 export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: boolean }) {
   const payable = invoice.payableAmount ?? invoice.total
+  const discountLines = invoice.discountLines?.filter((l) => l.amount > 0) ?? []
+  const totalDiscount = invoice.totalDiscount ?? discountLines.reduce((s, l) => s + l.amount, 0)
   return (
     <article className={`invoice-paper ${thermal ? 'thermal' : ''}`}>
       <header className="invoice-head">
@@ -46,20 +55,55 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
         </div>
       </header>
 
-      <div className="p-3 bg-light rounded-3 mb-3 d-flex justify-content-between align-items-center">
-        <div>
-          <span className="text-muted small d-block">Billed To Customer</span>
-          <strong className="text-navy-900 fs-6">{invoice.customerName || 'Walk-in Customer'}</strong>
-          {invoice.customerCode ? <div className="small font-monospace">Customer Code: {invoice.customerCode}</div> : null}
-          {invoice.customerAddress ? <div className="small text-muted">{invoice.customerAddress}</div> : null}
-        </div>
-        {invoice.customerMobile ? (
-          <div className="text-end">
-            <span className="text-muted small d-block">Customer Contact</span>
-            <strong className="font-monospace">{invoice.customerMobile}</strong>
+      <div className="p-3 bg-light rounded-3 mb-3">
+        <div className="small fw-bold text-muted mb-2 text-uppercase">Customer Details</div>
+        <div className="row g-2">
+          <div className="col-sm-6">
+            <div className="small text-muted">Customer Name</div>
+            <strong className="text-navy-900">{invoice.customerName || 'Walk-in Customer'}</strong>
           </div>
-        ) : null}
+          <div className="col-sm-6">
+            <div className="small text-muted">Mobile</div>
+            <strong className="font-monospace">{invoice.customerMobile || '—'}</strong>
+          </div>
+          <div className="col-sm-6">
+            <div className="small text-muted">Customer Code</div>
+            <strong className="font-monospace">{invoice.customerCode || '—'}</strong>
+          </div>
+          {invoice.customerAddress ? (
+            <div className="col-sm-6">
+              <div className="small text-muted">Address</div>
+              <span className="small">{invoice.customerAddress}</span>
+            </div>
+          ) : null}
+        </div>
       </div>
+
+      {invoice.hasReferral ? (
+        <div className="p-3 border rounded-3 mb-3">
+          <div className="small fw-bold text-muted mb-2 text-uppercase">Referral Information</div>
+          <div className="d-flex justify-content-between small mb-1">
+            <span>Referral Customer</span>
+            <strong>{invoice.referrerName || '—'}</strong>
+          </div>
+          <div className="d-flex justify-content-between small mb-1">
+            <span>Referral Code</span>
+            <strong className="font-monospace">{invoice.referrerCode || '—'}</strong>
+          </div>
+          {invoice.referralDiscountPercent ? (
+            <div className="d-flex justify-content-between small mb-1">
+              <span>Referral Discount</span>
+              <strong>{invoice.referralDiscountPercent}%</strong>
+            </div>
+          ) : null}
+          {invoice.referralDiscount ? (
+            <div className="d-flex justify-content-between small mb-0">
+              <span>Referral Discount Amount</span>
+              <strong className="text-danger">- {formatMoney(invoice.referralDiscount)}</strong>
+            </div>
+          ) : null}
+        </div>
+      ) : null}
 
       <div className="table-responsive mb-3">
         <table className="table app-table mb-0 align-middle">
@@ -129,13 +173,40 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
         <div className="col-sm-6">
           <div className="p-3 border rounded-3 bg-white">
             <div className="d-flex justify-content-between mb-1 small text-muted">
-              <span>Items Subtotal</span>
+              <span>Subtotal</span>
               <span>{formatMoney(invoice.subtotal)}</span>
             </div>
-            <Line label="Item / Bill Discount" value={invoice.discount} danger />
-            <Line label="Referral Discount" value={invoice.referralDiscount ?? 0} danger />
-            <Line label="Birthday Offer" value={invoice.birthdayDiscount ?? 0} danger />
-            <Line label="Store Discount" value={invoice.storeDiscount ?? 0} danger />
+            {discountLines.length
+              ? discountLines.map((line) => (
+                  <Line key={`${line.type}-${line.name}`} label={discountLabel(line)} value={line.amount} danger hint={line.reason ?? undefined} />
+                ))
+              : (
+                <>
+                  <Line label="Item Discount" value={invoice.itemDiscount ?? 0} danger />
+                  <Line
+                    label={invoice.referralDiscountPercent ? `Referral Discount (${invoice.referralDiscountPercent}%)` : 'Referral Discount'}
+                    value={invoice.referralDiscount ?? 0}
+                    danger
+                  />
+                  <Line
+                    label={invoice.birthdayDiscountPercent ? `Birthday Offer (${invoice.birthdayDiscountPercent}%)` : 'Birthday Offer'}
+                    value={invoice.birthdayDiscount ?? 0}
+                    danger
+                  />
+                  <Line
+                    label={invoice.storeDiscountName || 'Store Discount'}
+                    value={invoice.storeDiscount ?? 0}
+                    danger
+                  />
+                  <Line label="Other Discount" value={invoice.otherDiscount ?? 0} danger />
+                </>
+              )}
+            {totalDiscount > 0 ? (
+              <div className="d-flex justify-content-between mb-2 small fw-semibold">
+                <span>Total Discount</span>
+                <span className="text-danger">- {formatMoney(totalDiscount)}</span>
+              </div>
+            ) : null}
             <div className="d-flex justify-content-between mb-2 small text-muted">
               <span>Applicable GST Tax</span>
               <span>+ {formatMoney(invoice.tax)}</span>
@@ -155,7 +226,7 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
               </div>
             ) : null}
             <div className="d-flex justify-content-between pt-2 border-top mb-2">
-              <strong className="fs-5 text-navy-900">Final Payable</strong>
+              <strong className="fs-5 text-navy-900">Final Payable Amount</strong>
               <strong className="fs-5 text-navy-900">{formatMoney(payable)}</strong>
             </div>
             <div className="d-flex justify-content-between small text-success">

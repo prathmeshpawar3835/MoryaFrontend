@@ -304,13 +304,27 @@ export interface Invoice {
   customerMobile?: string | null
   customerAddress?: string | null
   customerCode?: string | null
+  customerDateOfBirth?: string | null
   salesPersonName?: string | null
   products: BillItem[]
   subtotal: number
   discount: number
+  itemDiscount?: number
+  otherDiscount?: number
   referralDiscount?: number
+  referralDiscountPercent?: number
   birthdayDiscount?: number
+  birthdayDiscountPercent?: number
   storeDiscount?: number
+  storeDiscountPercent?: number
+  storeDiscountName?: string | null
+  totalDiscount?: number
+  discountLines?: InvoiceDiscountLine[]
+  hasReferral?: boolean
+  referrerName?: string | null
+  referrerCode?: string | null
+  referrerBenefitPercent?: number
+  referrerBenefitAmount?: number
   tax: number
   total: number
   returnAdjustment?: number
@@ -325,6 +339,14 @@ export interface Invoice {
   amountDue: number
   footer?: string | null
   returnPolicy?: string | null
+}
+
+export interface InvoiceDiscountLine {
+  type: string
+  name: string
+  percent?: number | null
+  amount: number
+  reason?: string | null
 }
 
 export interface WhatsAppShare {
@@ -352,6 +374,7 @@ export interface Customer {
   outstandingBalance: number
   walletBalance: number
   isActive: boolean
+  hasCompletedSale?: boolean
   createdDate: string
 }
 
