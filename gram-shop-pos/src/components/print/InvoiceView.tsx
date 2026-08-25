@@ -5,70 +5,129 @@ import { PAYMENT_LABELS } from '../../constants/labels'
 export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: boolean }) {
   return (
     <article className={`invoice-paper ${thermal ? 'thermal' : ''}`}>
+      {/* Header */}
       <header className="invoice-head">
         <div>
-          <h1>{invoice.shopName}</h1>
-          <p className="mb-0">{invoice.businessAddress}</p>
-          <p className="mb-0">
-            {invoice.businessMobile} {invoice.businessEmail}
+          <div className="d-flex align-items-center gap-2 mb-1">
+            <span className="badge bg-dark text-warning px-2 py-1 fs-6 fw-bold">1G</span>
+            <h1 className="h4 fw-bold text-navy-900 mb-0">{invoice.shopName}</h1>
+          </div>
+          <p className="mb-1 text-muted small">{invoice.businessAddress}</p>
+          <p className="mb-1 text-muted small">
+            <i className="bi bi-telephone me-1" /> {invoice.businessMobile} &nbsp;·&nbsp;
+            <i className="bi bi-envelope me-1" /> {invoice.businessEmail}
           </p>
-          {invoice.gstNumber ? <p>GSTIN {invoice.gstNumber}</p> : null}
+          {invoice.gstNumber ? (
+            <p className="mb-0 small fw-semibold">
+              GSTIN: <span className="font-monospace">{invoice.gstNumber}</span>
+            </p>
+          ) : null}
         </div>
         <div className="text-end">
-          <strong>{invoice.invoiceNumber}</strong>
-          <div>{formatDateTime(invoice.invoiceDate)}</div>
-          <div>{invoice.storeName}</div>
-          <div>{invoice.storeAddress}</div>
+          <div className="badge bg-warning text-dark px-3 py-1 fs-6 fw-bold mb-2">TAX INVOICE</div>
+          <div className="fw-bold fs-5 text-navy-900 font-monospace">{invoice.invoiceNumber}</div>
+          <div className="text-muted small mb-1">{formatDateTime(invoice.invoiceDate)}</div>
+          <div className="fw-semibold text-dark">{invoice.storeName}</div>
+          <div className="text-muted small">{invoice.storeAddress}</div>
         </div>
       </header>
-      <p>
-        <strong>Customer:</strong> {invoice.customerName || 'Walk-in'} {invoice.customerMobile} {invoice.customerAddress}
-      </p>
-      <table className="table app-table">
-        <thead>
-          <tr>
-            <th>Product</th>
-            <th>Qty</th>
-            <th>Rate</th>
-            <th>Disc</th>
-            <th>Tax</th>
-            <th>Total</th>
-          </tr>
-        </thead>
-        <tbody>
-          {invoice.products.map((p) => (
-            <tr key={p.id}>
-              <td>
-                {p.productName}
-                <div className="small text-muted">{p.productCode}</div>
-              </td>
-              <td>{p.quantity}</td>
-              <td>{formatMoney(p.rate)}</td>
-              <td>{formatMoney(p.discountAmount)}</td>
-              <td>{formatMoney(p.taxAmount)}</td>
-              <td>{formatMoney(p.total)}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="text-end">
-        <div>Subtotal {formatMoney(invoice.subtotal)}</div>
-        <div>Discount {formatMoney(invoice.discount)}</div>
-        <div>Tax {formatMoney(invoice.tax)}</div>
-        <h3>Total {formatMoney(invoice.total)}</h3>
-        <div>Paid {formatMoney(invoice.amountPaid)}</div>
-        <div>Due {formatMoney(invoice.amountDue)}</div>
+
+      {/* Customer Info Bar */}
+      <div className="p-3 bg-light rounded-3 mb-3 d-flex justify-content-between align-items-center">
+        <div>
+          <span className="text-muted small d-block">Billed To Customer</span>
+          <strong className="text-navy-900 fs-6">{invoice.customerName || 'Walk-in Customer'}</strong>
+          {invoice.customerAddress ? <div className="small text-muted">{invoice.customerAddress}</div> : null}
+        </div>
+        {invoice.customerMobile ? (
+          <div className="text-end">
+            <span className="text-muted small d-block">Customer Contact</span>
+            <strong className="font-monospace">{invoice.customerMobile}</strong>
+          </div>
+        ) : null}
       </div>
-      <p className="mt-2">
-        {invoice.payments.map((p) => (
-          <span key={p.id} className="me-2">
-            {PAYMENT_LABELS[p.paymentMode] ?? p.paymentMode}: {formatMoney(p.amount)}
-          </span>
-        ))}
-      </p>
-      <footer className="mt-3 small">
-        <p>{invoice.footer}</p>
-        <p>{invoice.returnPolicy}</p>
+
+      {/* Items Table */}
+      <div className="table-responsive mb-3">
+        <table className="table app-table mb-0 align-middle">
+          <thead>
+            <tr>
+              <th style={{ width: '40%' }}>Description of Goods</th>
+              <th className="text-center" style={{ width: '10%' }}>Qty</th>
+              <th className="text-end" style={{ width: '12%' }}>Rate</th>
+              <th className="text-end" style={{ width: '12%' }}>Disc</th>
+              <th className="text-end" style={{ width: '10%' }}>GST</th>
+              <th className="text-end" style={{ width: '16%' }}>Amount</th>
+            </tr>
+          </thead>
+          <tbody>
+            {invoice.products.map((p) => (
+              <tr key={p.id}>
+                <td>
+                  <div className="fw-bold text-dark">{p.productName}</div>
+                  <div className="small text-muted">{p.productCode}</div>
+                </td>
+                <td className="text-center fw-semibold">{p.quantity}</td>
+                <td className="text-end">{formatMoney(p.rate)}</td>
+                <td className="text-end text-muted">{p.discountAmount ? formatMoney(p.discountAmount) : '—'}</td>
+                <td className="text-end text-muted">{formatMoney(p.taxAmount)}</td>
+                <td className="text-end fw-bold text-navy-900">{formatMoney(p.total)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+
+      {/* Totals & Payments Section */}
+      <div className="row g-3">
+        <div className="col-sm-6">
+          <div className="p-3 bg-light rounded-3 h-100">
+            <div className="small fw-bold text-muted mb-2 text-uppercase">Payment Method Breakdown</div>
+            {invoice.payments.map((p) => (
+              <div key={p.id} className="d-flex justify-content-between align-items-center mb-1">
+                <span>{PAYMENT_LABELS[p.paymentMode] ?? p.paymentMode}</span>
+                <strong className="text-dark">{formatMoney(p.amount)}</strong>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="col-sm-6">
+          <div className="p-3 border rounded-3 bg-white">
+            <div className="d-flex justify-content-between mb-1 small text-muted">
+              <span>Items Subtotal</span>
+              <span>{formatMoney(invoice.subtotal)}</span>
+            </div>
+            <div className="d-flex justify-content-between mb-1 small text-muted">
+              <span>Discount</span>
+              <span className="text-danger">- {formatMoney(invoice.discount)}</span>
+            </div>
+            <div className="d-flex justify-content-between mb-2 small text-muted">
+              <span>Applicable GST Tax</span>
+              <span>+ {formatMoney(invoice.tax)}</span>
+            </div>
+            <div className="d-flex justify-content-between pt-2 border-top mb-2">
+              <strong className="fs-5 text-navy-900">Total Invoice Value</strong>
+              <strong className="fs-5 text-navy-900">{formatMoney(invoice.total)}</strong>
+            </div>
+            <div className="d-flex justify-content-between small text-success">
+              <span>Total Paid</span>
+              <span className="fw-bold">{formatMoney(invoice.amountPaid)}</span>
+            </div>
+            {invoice.amountDue > 0 ? (
+              <div className="d-flex justify-content-between small text-danger fw-bold">
+                <span>Pending Balance Due</span>
+                <span>{formatMoney(invoice.amountDue)}</span>
+              </div>
+            ) : null}
+          </div>
+        </div>
+      </div>
+
+      {/* Footer Notes & Policy */}
+      <footer className="mt-4 pt-3 border-top text-center text-muted small">
+        <p className="mb-1">{invoice.footer || 'Thank you for your valued patronage!'}</p>
+        <p className="mb-0 fst-italic">{invoice.returnPolicy}</p>
       </footer>
     </article>
   )

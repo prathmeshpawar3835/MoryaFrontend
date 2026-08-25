@@ -1,22 +1,37 @@
 import type { ReactNode } from 'react'
 
-export function PageLoader({ label = 'Loading…' }: { label?: string }) {
+export function PageLoader({ label = 'Loading data…' }: { label?: string }) {
   return (
     <div className="page-loader" role="status" aria-live="polite">
-      <div className="spinner-border text-gold" />
-      <span>{label}</span>
+      <div className="spinner-border text-warning" style={{ width: '2.5rem', height: '2.5rem' }} />
+      <span className="fw-semibold text-muted mt-2">{label}</span>
     </div>
   )
 }
 
 export function LoadingSpinner({ size = 'sm' }: { size?: 'sm' | 'md' }) {
-  return <div className={`spinner-border spinner-border-${size} text-gold`} role="status" aria-label="Loading" />
+  return (
+    <div
+      className={`spinner-border spinner-border-${size} text-warning`}
+      role="status"
+      aria-label="Loading"
+      style={{ verticalAlign: 'middle' }}
+    />
+  )
 }
 
-export function EmptyState({ title, hint }: { title: string; hint?: string }) {
+export function EmptyState({
+  title,
+  hint,
+  icon = 'bi-inbox',
+}: {
+  title: string
+  hint?: string
+  icon?: string
+}) {
   return (
     <div className="empty-state">
-      <i className="bi bi-inbox" aria-hidden />
+      <i className={`bi ${icon}`} aria-hidden />
       <h3>{title}</h3>
       {hint ? <p>{hint}</p> : null}
     </div>
@@ -26,20 +41,28 @@ export function EmptyState({ title, hint }: { title: string; hint?: string }) {
 export function ErrorState({ message }: { message: string }) {
   return (
     <div className="error-state" role="alert">
-      <i className="bi bi-exclamation-triangle" aria-hidden />
-      <p>{message}</p>
+      <i className="bi bi-exclamation-triangle-fill" aria-hidden />
+      <p className="mb-0 fw-semibold">{message}</p>
     </div>
   )
 }
 
 export function StatusBadge({ active, labels }: { active: boolean; labels?: [string, string] }) {
   const [on, off] = labels ?? ['Active', 'Inactive']
-  return <span className={`badge-status ${active ? 'is-on' : 'is-off'}`}>{active ? on : off}</span>
+  return (
+    <span className={`badge-status ${active ? 'is-on' : 'is-off'}`}>
+      {active ? on : off}
+    </span>
+  )
 }
 
 export function CurrencyDisplay({ value }: { value?: number | null }) {
   const n = Number(value ?? 0)
-  const formatted = new Intl.NumberFormat('en-IN', { style: 'currency', currency: 'INR' }).format(n)
+  const formatted = new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: 2,
+  }).format(n)
   return <span className={`money ${n < 0 ? 'is-neg' : ''}`}>{formatted}</span>
 }
 
@@ -53,13 +76,13 @@ export function PageHeader({
   actions?: ReactNode
 }) {
   return (
-    <div className="page-header">
+    <header className="page-header">
       <div>
         <h1>{title}</h1>
         {subtitle ? <p>{subtitle}</p> : null}
       </div>
       {actions ? <div className="page-header-actions">{actions}</div> : null}
-    </div>
+    </header>
   )
 }
 
@@ -82,9 +105,19 @@ export function SearchBox({
         className="form-control"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder ?? 'Search'}
+        placeholder={placeholder ?? 'Search...'}
         aria-label={placeholder ?? 'Search'}
       />
+      {value ? (
+        <button
+          type="button"
+          className="btn btn-sm btn-link position-absolute end-0 top-50 translate-middle-y text-muted text-decoration-none pe-3"
+          onClick={() => onChange('')}
+          aria-label="Clear search"
+        >
+          <i className="bi bi-x-circle-fill" />
+        </button>
+      ) : null}
     </div>
   )
 }
@@ -101,19 +134,24 @@ export function Pagination({
   if (totalPages <= 1) return null
   return (
     <nav className="pager" aria-label="Pagination">
-      <button type="button" className="btn btn-sm btn-outline-light" disabled={page <= 1} onClick={() => onPage(page - 1)}>
-        Previous
+      <button
+        type="button"
+        className="btn btn-sm btn-outline-secondary"
+        disabled={page <= 1}
+        onClick={() => onPage(page - 1)}
+      >
+        <i className="bi bi-chevron-left me-1" /> Previous
       </button>
-      <span>
-        Page {page} of {totalPages}
+      <span className="fw-semibold">
+        Page <span className="text-dark">{page}</span> of {totalPages}
       </span>
       <button
         type="button"
-        className="btn btn-sm btn-outline-light"
+        className="btn btn-sm btn-outline-secondary"
         disabled={page >= totalPages}
         onClick={() => onPage(page + 1)}
       >
-        Next
+        Next <i className="bi bi-chevron-right ms-1" />
       </button>
     </nav>
   )
@@ -132,11 +170,21 @@ export function DateRangePicker({
     <div className="date-range">
       <label>
         From
-        <input type="date" className="form-control" value={from} onChange={(e) => onChange(e.target.value, to)} />
+        <input
+          type="date"
+          className="form-control form-control-sm"
+          value={from}
+          onChange={(e) => onChange(e.target.value, to)}
+        />
       </label>
       <label>
         To
-        <input type="date" className="form-control" value={to} onChange={(e) => onChange(from, e.target.value)} />
+        <input
+          type="date"
+          className="form-control form-control-sm"
+          value={to}
+          onChange={(e) => onChange(from, e.target.value)}
+        />
       </label>
     </div>
   )

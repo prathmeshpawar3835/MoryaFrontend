@@ -20,10 +20,12 @@ export function DataTable({
   totalPages?: number
   onPage?: (page: number) => void
 }) {
+  const isEmpty = !children || (Array.isArray(children) && children.length === 0)
+
   return (
     <div className="table-shell">
       <div className="table-responsive">
-        <table className="table app-table">
+        <table className="table app-table mb-0 align-middle">
           <thead>
             <tr>
               {columns.map((c) => (
@@ -34,20 +36,21 @@ export function DataTable({
           <tbody>
             {loading ? (
               <tr>
-                <td colSpan={columns.length} className="text-center py-4">
-                  <LoadingSpinner />
+                <td colSpan={columns.length} className="text-center py-5">
+                  <LoadingSpinner size="md" />
+                  <div className="text-muted small mt-2 fw-medium">Loading records…</div>
                 </td>
               </tr>
             ) : error ? (
               <tr>
-                <td colSpan={columns.length}>
+                <td colSpan={columns.length} className="p-4">
                   <ErrorState message={error} />
                 </td>
               </tr>
-            ) : !children || (Array.isArray(children) && children.length === 0) ? (
+            ) : isEmpty ? (
               <tr>
-                <td colSpan={columns.length}>
-                  <EmptyState title={empty ?? 'No records found'} />
+                <td colSpan={columns.length} className="p-4">
+                  <EmptyState title={empty ?? 'No records found'} hint="Try changing your search filters or add a new record." />
                 </td>
               </tr>
             ) : (

@@ -22,7 +22,14 @@ export function ProductsPage() {
   const [categoryId, setCategoryId] = useState<number | ''>('')
   const [lowStockOnly, setLowStockOnly] = useState(false)
   const cats = useQuery({ queryKey: queryKeys.categories, queryFn: categoryApi.list })
-  const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined, categoryId: categoryId || undefined, lowStockOnly: lowStockOnly || undefined }
+  const query = {
+    pageNumber: page,
+    pageSize: 20,
+    search,
+    storeId: selectedStoreId ?? undefined,
+    categoryId: categoryId || undefined,
+    lowStockOnly: lowStockOnly || undefined,
+  }
   const q = useQuery({ queryKey: queryKeys.products(query), queryFn: () => productApi.list(query) })
   const canWrite = canAccess(user?.role, 'products.write')
 
@@ -46,49 +53,130 @@ export function ProductsPage() {
       toast.success('Product status updated')
       await qc.invalidateQueries({ queryKey: ['products'] })
     },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to change product status')
+    },
   })
 
   return (
     <>
       <PageHeader
-        title="Products"
-        actions={canWrite ? <Link className="btn btn-gold" to="/products/create">Add product</Link> : undefined}
+        title="Products Catalog"
+        subtitle="Manage jewellery items, pricing, barcodes, and inventory levels"
+        actions={
+          canWrite ? (
+            <div className="page-header-actions">
+              <Link className="btn btn-gold" to="/products/create">
+                <i className="bi bi-plus-lg me-1" /> Add Product
+              </Link>
+              <Link className="btn btn-outline-secondary" to="/products/import">
+                <i className="bi bi-file-earmark-excel me-1" /> Excel Import
+              </Link>
+            </div>
+          ) : undefined
+        }
       />
+
       <div className="filter-bar">
-        <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Name, code or barcode" />
+        <SearchBox
+          value={search}
+          onChange={(v) => {
+            setSearch(v)
+            setPage(1)
+          }}
+          placeholder="Search by code, name or barcode…"
+        />
         <StoreSelector />
-        <select className="form-select" value={categoryId} onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}>
-          <option value="">All categories</option>
-          {cats.data?.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
+        <select
+          className="form-select"
+          style={{ minWidth: '170px' }}
+          value={categoryId}
+          onChange={(e) => setCategoryId(e.target.value ? Number(e.target.value) : '')}
+        >
+          <option value="">All Categories</option>
+          {cats.data?.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
         </select>
-        <label className="form-check">
-          <input className="form-check-input" type="checkbox" checked={lowStockOnly} onChange={(e) => setLowStockOnly(e.target.checked)} />
-          Low stock
-        </label>
+        <div className="form-check form-switch ms-2">
+          <input
+            className="form-check-input"
+            type="checkbox"
+            id="lowStockCheck"
+            checked={lowStockOnly}
+            onChange={(e) => setLowStockOnly(e.target.checked)}
+          />
+          <label className="form-check-label fw-semibold small text-muted" htmlFor="lowStockCheck">
+            Low Stock Alerts
+          </label>
+        </div>
       </div>
-      <DataTable loading={q.isLoading} error={q.isError ? 'Could not load products' : null} columns={['Code', 'Barcode', 'Name', 'Category', 'Purchase', 'Selling', 'MRP', 'GST', 'Stock', 'Status', 'Actions']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={setPage}>
+
+      <DataTable
+        loading={q.isLoading}
+        error={q.isError ? 'Could not load products' : null}
+        columns={['Code / SKU', 'Barcode', 'Product Name', 'Category', 'Purchase', 'Selling', 'MRP', 'Tax', 'Stock', 'Status', 'Actions']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={setPage}
+      >
         {q.data?.items.map((p) => (
           <tr key={p.id}>
-            <td>{p.productCode}</td>
-            <td>{p.barcode || '—'}</td>
-            <td>{p.productName}</td>
-            <td>{p.categoryName}</td>
+            <td>
+              <span className="fw-bold text-dark">{p.productCode}</span>
+            </td>
+            <td>
+              <span className="small text-muted font-monospace">{p.barcode || '—'}</span>
+            </td>
+            <td>
+              <span className="fw-semibold text-navy-900">{p.productName}</span>
+            </td>
+            <td>
+              <span className="badge bg-light text-dark border">{p.categoryName}</span>
+            </td>
             <td><CurrencyDisplay value={p.purchasePrice} /></td>
-            <td><CurrencyDisplay value={p.sellingPrice} /></td>
+            <td className="fw-bold text-navy-900"><CurrencyDisplay value={p.sellingPrice} /></td>
             <td><CurrencyDisplay value={p.mrp} /></td>
             <td>{p.taxPercent}%</td>
-            <td>{p.stockQuantity ?? '—'}</td>
+            <td>
+              <span className={`badge ${p.stockQuantity && p.stockQuantity > 0 ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger'} rounded-pill`}>
+                {p.stockQuantity ?? 0} {p.unit}
+              </span>
+            </td>
             <td><StatusBadge active={p.isActive} /></td>
             <td>
-              <Link className="btn btn-sm btn-outline-secondary me-1" to={`/products/${p.id}`}>View</Link>
-              {canWrite ? (
-                <>
-                  <Link className="btn btn-sm btn-outline-secondary me-1" to={`/products/edit/${p.id}`}>Edit</Link>
-                  <ConfirmDialog title={p.isActive ? 'Deactivate product?' : 'Activate product?'} body="Products are never hard-deleted from this screen." onConfirm={() => deactivate.mutateAsync(p.id)}>
-                    {(open) => <button type="button" className="btn btn-sm btn-outline-secondary" onClick={open}>{p.isActive ? 'Deactivate' : 'Activate'}</button>}
-                  </ConfirmDialog>
-                </>
-              ) : null}
+              <div className="d-flex gap-1">
+                <Link className="btn btn-sm btn-outline-secondary" to={`/products/${p.id}`} title="View Details">
+                  <i className="bi bi-eye" />
+                </Link>
+                {canWrite ? (
+                  <>
+                    <Link className="btn btn-sm btn-outline-secondary" to={`/products/edit/${p.id}`} title="Edit Product">
+                      <i className="bi bi-pencil" />
+                    </Link>
+                    <ConfirmDialog
+                      title={p.isActive ? 'Deactivate Product?' : 'Activate Product?'}
+                      body={`Are you sure you want to ${p.isActive ? 'deactivate' : 'activate'} ${p.productName}?`}
+                      danger={p.isActive}
+                      confirmLabel={p.isActive ? 'Deactivate' : 'Activate'}
+                      onConfirm={() => deactivate.mutateAsync(p.id)}
+                    >
+                      {(open) => (
+                        <button
+                          type="button"
+                          className={`btn btn-sm ${p.isActive ? 'btn-outline-danger' : 'btn-outline-success'}`}
+                          onClick={open}
+                          title={p.isActive ? 'Deactivate' : 'Activate'}
+                        >
+                          <i className={`bi ${p.isActive ? 'bi-slash-circle' : 'bi-check-circle'}`} />
+                        </button>
+                      )}
+                    </ConfirmDialog>
+                  </>
+                ) : null}
+              </div>
             </td>
           </tr>
         ))}

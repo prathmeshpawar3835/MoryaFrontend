@@ -30,7 +30,14 @@ function useReportQuery() {
 }
 
 function Filters({
-  search, setSearch, from, to, setRange, period, setPeriod, extra,
+  search,
+  setSearch,
+  from,
+  to,
+  setRange,
+  period,
+  setPeriod,
+  extra,
 }: {
   search: string
   setSearch: (v: string) => void
@@ -43,13 +50,19 @@ function Filters({
 }) {
   return (
     <div className="filter-bar">
-      <SearchBox value={search} onChange={setSearch} />
+      <SearchBox value={search} onChange={setSearch} placeholder="Filter records…" />
       <StoreSelector />
-      <select className="form-select" value={period} onChange={(e) => setPeriod(e.target.value)} aria-label="Period">
-        <option value="daily">Daily</option>
-        <option value="weekly">Weekly</option>
-        <option value="monthly">Monthly</option>
-        <option value="custom">Custom</option>
+      <select
+        className="form-select"
+        style={{ minWidth: '130px' }}
+        value={period}
+        onChange={(e) => setPeriod(e.target.value)}
+        aria-label="Filter report timeframe"
+      >
+        <option value="daily">📅 Daily</option>
+        <option value="weekly">📅 Weekly</option>
+        <option value="monthly">📅 Monthly</option>
+        <option value="custom">📅 Custom</option>
       </select>
       {period === 'custom' ? <DateRangePicker from={from} to={to} onChange={setRange} /> : null}
       {extra}
@@ -61,42 +74,101 @@ export function SalesReportPage() {
   const f = useReportQuery()
   const q = useQuery({ queryKey: queryKeys.reports('sales', f.query), queryFn: () => reportApi.sales(f.query) })
   const d = q.data
+
   return (
     <>
-      <PageHeader title="Sales report" actions={
-        <>
-          <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportSalesExcel(f.query)}>Excel</button>
-          <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportSalesPdf(f.query)}>PDF</button>
-        </>
-      } />
-      <Filters search={f.search} setSearch={f.setSearch} from={f.from} to={f.to} setRange={(a, b) => { f.setFrom(a); f.setTo(b) }} period={f.period} setPeriod={f.setPeriod} />
+      <PageHeader
+        title="Sales & Revenue Report"
+        subtitle="Comprehensive breakdown of store gross sales, bills, GST, and net margins"
+        actions={
+          <div className="page-header-actions">
+            <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportSalesExcel(f.query)}>
+              <i className="bi bi-file-earmark-excel me-1" /> Excel Export
+            </button>
+            <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportSalesPdf(f.query)}>
+              <i className="bi bi-file-earmark-pdf me-1" /> PDF Report
+            </button>
+          </div>
+        }
+      />
+
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+      />
+
       {d ? (
         <div className="kpi-grid">
-          <div className="kpi"><span>Total sales</span><strong><CurrencyDisplay value={d.totalSales} /></strong></div>
-          <div className="kpi"><span>Bills</span><strong>{d.billCount}</strong></div>
-          <div className="kpi"><span>Tax</span><strong><CurrencyDisplay value={d.tax} /></strong></div>
-          <div className="kpi"><span>Net</span><strong><CurrencyDisplay value={d.netSales} /></strong></div>
+          <div className="kpi">
+            <div className="kpi-header">
+              <span>Gross Sales</span>
+              <div className="kpi-icon"><i className="bi bi-currency-rupee" /></div>
+            </div>
+            <strong><CurrencyDisplay value={d.totalSales} /></strong>
+          </div>
+          <div className="kpi">
+            <div className="kpi-header">
+              <span>Total Invoices</span>
+              <div className="kpi-icon"><i className="bi bi-receipt" /></div>
+            </div>
+            <strong>{d.billCount}</strong>
+          </div>
+          <div className="kpi">
+            <div className="kpi-header">
+              <span>Total Tax (GST)</span>
+              <div className="kpi-icon"><i className="bi bi-percent" /></div>
+            </div>
+            <strong><CurrencyDisplay value={d.tax} /></strong>
+          </div>
+          <div className="kpi">
+            <div className="kpi-header">
+              <span>Net Revenue</span>
+              <div className="kpi-icon text-success bg-success-subtle"><i className="bi bi-cash-stack" /></div>
+            </div>
+            <strong className="text-success"><CurrencyDisplay value={d.netSales} /></strong>
+          </div>
         </div>
       ) : null}
-      <DataTable loading={q.isLoading} columns={['Bill', 'Date', 'Customer', 'Total', 'Paid']} page={d?.bills.pageNumber} totalPages={d?.bills.totalPages} onPage={f.setPage}>
+
+      <DataTable
+        loading={q.isLoading}
+        columns={['Bill Number', 'Bill Date', 'Customer Name', 'Grand Total', 'Paid Amount']}
+        page={d?.bills.pageNumber}
+        totalPages={d?.bills.totalPages}
+        onPage={f.setPage}
+      >
         {d?.bills.items.map((b) => (
           <tr key={b.id}>
-            <td>{b.billNumber}</td>
-            <td>{formatDateTime(b.billDate)}</td>
-            <td>{b.customerName || 'Walk-in'}</td>
-            <td><CurrencyDisplay value={b.grandTotal} /></td>
-            <td><CurrencyDisplay value={b.paidAmount} /></td>
+            <td className="fw-bold text-navy-900 font-monospace">{b.billNumber}</td>
+            <td className="small text-muted">{formatDateTime(b.billDate)}</td>
+            <td>{b.customerName || <span className="text-muted fst-italic">Walk-in</span>}</td>
+            <td className="fw-bold"><CurrencyDisplay value={b.grandTotal} /></td>
+            <td className="text-success"><CurrencyDisplay value={b.paidAmount} /></td>
           </tr>
         ))}
       </DataTable>
+
       {d?.paymentBreakdown.length ? (
         <div className="card-panel mt-3">
-          {d.paymentBreakdown.map((p) => (
-            <div key={p.paymentMode} className="d-flex justify-content-between">
-              <span>{p.paymentMode}</span>
-              <CurrencyDisplay value={p.amount} />
-            </div>
-          ))}
+          <h2><i className="bi bi-pie-chart text-gold" /> Payment Mode Summary</h2>
+          <div className="row g-2">
+            {d.paymentBreakdown.map((p) => (
+              <div key={p.paymentMode} className="col-sm-6 col-md-3">
+                <div className="p-3 bg-light rounded-3 d-flex justify-content-between align-items-center">
+                  <span className="fw-semibold text-dark">{p.paymentMode}</span>
+                  <strong className="text-navy-900"><CurrencyDisplay value={p.amount} /></strong>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       ) : null}
     </>
@@ -108,17 +180,61 @@ export function ProductSalesReportPage() {
   const [slow, setSlow] = useState(false)
   const query = { ...f.query, slowMoving: slow }
   const q = useQuery({ queryKey: queryKeys.reports('product-sales', query), queryFn: () => reportApi.productSales(query) })
+
   return (
     <>
-      <PageHeader title="Product sales" actions={<button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportProductSalesExcel(f.query)}>Excel</button>} />
-      <Filters search={f.search} setSearch={f.setSearch} from={f.from} to={f.to} setRange={(a, b) => { f.setFrom(a); f.setTo(b) }} period={f.period} setPeriod={f.setPeriod} extra={<label className="form-check"><input type="checkbox" className="form-check-input" checked={slow} onChange={(e) => setSlow(e.target.checked)} /> Slow movers</label>} />
-      <DataTable loading={q.isLoading} columns={['Code', 'Product', 'Qty', 'Revenue']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={f.setPage}>
+      <PageHeader
+        title="Product-Wise Sales Velocity"
+        subtitle="Track bestsellers and identify slow-moving inventory"
+        actions={
+          <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportProductSalesExcel(f.query)}>
+            <i className="bi bi-file-earmark-excel me-1" /> Export Excel
+          </button>
+        }
+      />
+
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+        extra={
+          <div className="form-check form-switch ms-2">
+            <input
+              type="checkbox"
+              className="form-check-input"
+              id="slowCheck"
+              checked={slow}
+              onChange={(e) => setSlow(e.target.checked)}
+            />
+            <label className="form-check-label fw-semibold small text-muted" htmlFor="slowCheck">
+              Slow Movers
+            </label>
+          </div>
+        }
+      />
+
+      <DataTable
+        loading={q.isLoading}
+        columns={['Product SKU', 'Product Name', 'Quantity Sold', 'Total Revenue Generated']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={f.setPage}
+      >
         {q.data?.items.map((r) => (
           <tr key={r.productId}>
-            <td>{r.productCode}</td>
-            <td>{r.productName}</td>
-            <td>{r.quantitySold}</td>
-            <td><CurrencyDisplay value={r.revenue} /></td>
+            <td className="font-monospace fw-bold">{r.productCode}</td>
+            <td className="fw-semibold text-navy-900">{r.productName}</td>
+            <td>
+              <span className="badge bg-light text-dark border fs-6">{r.quantitySold}</span>
+            </td>
+            <td className="fw-bold text-navy-900"><CurrencyDisplay value={r.revenue} /></td>
           </tr>
         ))}
       </DataTable>
@@ -129,25 +245,57 @@ export function ProductSalesReportPage() {
 export function InventoryReportPage() {
   const f = useReportQuery()
   const q = useQuery({ queryKey: queryKeys.reports('inventory', f.query), queryFn: () => reportApi.inventory(f.query) })
+
   return (
     <>
-      <PageHeader title="Inventory report" actions={
-        <>
-          <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportInventoryExcel(f.query)}>Excel</button>
-          <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportInventoryPdf(f.query)}>PDF</button>
-        </>
-      } />
-      <Filters search={f.search} setSearch={f.setSearch} from={f.from} to={f.to} setRange={(a, b) => { f.setFrom(a); f.setTo(b) }} period={f.period} setPeriod={f.setPeriod} />
-      <DataTable loading={q.isLoading} columns={['Store', 'Code', 'Product', 'Qty', 'Purchase value', 'Selling value', 'Low']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={f.setPage}>
+      <PageHeader
+        title="Inventory Valuation & Stock Status"
+        subtitle="Current inventory asset values at purchase cost and retail price"
+        actions={
+          <div className="page-header-actions">
+            <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportInventoryExcel(f.query)}>
+              <i className="bi bi-file-earmark-excel me-1" /> Excel Export
+            </button>
+            <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportInventoryPdf(f.query)}>
+              <i className="bi bi-file-earmark-pdf me-1" /> PDF Valuation
+            </button>
+          </div>
+        }
+      />
+
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+      />
+
+      <DataTable
+        loading={q.isLoading}
+        columns={['Store', 'Product SKU', 'Product Name', 'Current Stock', 'Total Purchase Value', 'Total Selling Value', 'Stock Alert']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={f.setPage}
+      >
         {q.data?.items.map((r) => (
           <tr key={`${r.storeId}-${r.productId}`}>
-            <td>{r.storeCode}</td>
-            <td>{r.productCode}</td>
-            <td>{r.productName}</td>
-            <td>{r.quantity}</td>
+            <td><span className="badge bg-light text-dark border">{r.storeCode}</span></td>
+            <td className="font-monospace">{r.productCode}</td>
+            <td className="fw-semibold text-navy-900">{r.productName}</td>
+            <td className="fw-bold">{r.quantity}</td>
             <td><CurrencyDisplay value={r.purchaseValue} /></td>
-            <td><CurrencyDisplay value={r.sellingValue} /></td>
-            <td>{r.isLowStock ? 'Yes' : 'No'}</td>
+            <td className="fw-bold text-navy-900"><CurrencyDisplay value={r.sellingValue} /></td>
+            <td>
+              <span className={`badge ${r.isLowStock ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'} rounded-pill`}>
+                {r.isLowStock ? 'Low Stock' : 'Adequate'}
+              </span>
+            </td>
           </tr>
         ))}
       </DataTable>
@@ -158,18 +306,41 @@ export function InventoryReportPage() {
 export function PurchasesReportPage() {
   const f = useReportQuery()
   const q = useQuery({ queryKey: queryKeys.reports('purchases', f.query), queryFn: () => reportApi.purchases(f.query) })
+
   return (
     <>
-      <PageHeader title="Purchase report" />
-      <Filters search={f.search} setSearch={f.setSearch} from={f.from} to={f.to} setRange={(a, b) => { f.setFrom(a); f.setTo(b) }} period={f.period} setPeriod={f.setPeriod} />
-      <DataTable loading={q.isLoading} columns={['Invoice', 'Supplier', 'Store', 'Date', 'Value']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={f.setPage}>
+      <PageHeader
+        title="Supplier Purchases Report"
+        subtitle="Historical procurement expenditures and vendor invoices"
+      />
+
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+      />
+
+      <DataTable
+        loading={q.isLoading}
+        columns={['Supplier Invoice', 'Supplier / Vendor', 'Store Branch', 'Purchase Date', 'Total Value']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={f.setPage}
+      >
         {q.data?.items.map((p) => (
           <tr key={p.id}>
-            <td>{p.invoiceNumber}</td>
+            <td className="fw-bold font-monospace">{p.invoiceNumber}</td>
             <td>{p.supplierName}</td>
-            <td>{p.storeCode}</td>
-            <td>{formatDateTime(p.purchaseDate)}</td>
-            <td><CurrencyDisplay value={p.total} /></td>
+            <td><span className="badge bg-light text-dark border">{p.storeCode}</span></td>
+            <td className="small text-muted">{formatDateTime(p.purchaseDate)}</td>
+            <td className="fw-bold text-navy-900"><CurrencyDisplay value={p.total} /></td>
           </tr>
         ))}
       </DataTable>
@@ -180,18 +351,43 @@ export function PurchasesReportPage() {
 export function ReturnsReportPage() {
   const f = useReportQuery()
   const q = useQuery({ queryKey: queryKeys.reports('returns', f.query), queryFn: () => reportApi.returns(f.query) })
+
   return (
     <>
-      <PageHeader title="Return report" />
-      <Filters search={f.search} setSearch={f.setSearch} from={f.from} to={f.to} setRange={(a, b) => { f.setFrom(a); f.setTo(b) }} period={f.period} setPeriod={f.setPeriod} />
-      <DataTable loading={q.isLoading} columns={['Return', 'Bill', 'Date', 'Amount', 'Kind']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={f.setPage}>
+      <PageHeader
+        title="Returns & Exchanges Report"
+        subtitle="Summary of refunded merchandise, exchanges, and return reasons"
+      />
+
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+      />
+
+      <DataTable
+        loading={q.isLoading}
+        columns={['Return Number', 'Original Bill', 'Return Date', 'Refund Amount', 'Return Type']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={f.setPage}
+      >
         {q.data?.items.map((r) => (
           <tr key={r.id}>
-            <td>{r.returnNumber}</td>
-            <td>{r.originalBillNumber}</td>
-            <td>{formatDateTime(r.returnDate)}</td>
-            <td><CurrencyDisplay value={r.returnAmount} /></td>
-            <td>{RETURN_KIND_LABELS[r.returnKind] ?? r.returnKind}</td>
+            <td className="fw-bold font-monospace text-navy-900">{r.returnNumber}</td>
+            <td className="font-monospace text-muted">{r.originalBillNumber}</td>
+            <td className="small text-muted">{formatDateTime(r.returnDate)}</td>
+            <td className="fw-bold text-danger"><CurrencyDisplay value={r.returnAmount} /></td>
+            <td>
+              <span className="badge bg-light text-dark border">{RETURN_KIND_LABELS[r.returnKind] ?? r.returnKind}</span>
+            </td>
           </tr>
         ))}
       </DataTable>
@@ -202,19 +398,51 @@ export function ReturnsReportPage() {
 export function CustomerDuesReportPage() {
   const f = useReportQuery()
   const q = useQuery({ queryKey: queryKeys.reports('dues', f.query), queryFn: () => reportApi.customerDues(f.query) })
+
   return (
     <>
-      <PageHeader title="Customer dues report" actions={<button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportCustomersExcel(f.query)}>Excel</button>} />
-      <Filters search={f.search} setSearch={f.setSearch} from={f.from} to={f.to} setRange={(a, b) => { f.setFrom(a); f.setTo(b) }} period={f.period} setPeriod={f.setPeriod} />
-      <DataTable loading={q.isLoading} columns={['Customer', 'Mobile', 'Store', 'Due', 'Purchases', 'Aging']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={f.setPage}>
+      <PageHeader
+        title="Customer Dues & Aging Analysis"
+        subtitle="Audit outstanding credit and payment recovery aging buckets"
+        actions={
+          <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportCustomersExcel(f.query)}>
+            <i className="bi bi-file-earmark-excel me-1" /> Export Excel
+          </button>
+        }
+      />
+
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+      />
+
+      <DataTable
+        loading={q.isLoading}
+        columns={['Customer Name', 'Mobile Number', 'Store ID', 'Outstanding Due', 'Lifetime Purchases', 'Aging (Days)']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={f.setPage}
+      >
         {q.data?.items.map((r) => (
           <tr key={r.customerId}>
-            <td>{r.name}</td>
-            <td>{r.mobile}</td>
-            <td>{r.storeId}</td>
-            <td><CurrencyDisplay value={r.outstandingAmount} /></td>
+            <td className="fw-bold text-navy-900">{r.name}</td>
+            <td className="font-monospace">{r.mobile}</td>
+            <td><span className="badge bg-light text-dark border">Store #{r.storeId}</span></td>
+            <td className="fw-bold text-danger"><CurrencyDisplay value={r.outstandingAmount} /></td>
             <td><CurrencyDisplay value={r.totalPurchases} /></td>
-            <td>{r.agingDays}</td>
+            <td>
+              <span className={`badge ${r.agingDays > 30 ? 'bg-danger' : 'bg-warning text-dark'} rounded-pill`}>
+                {r.agingDays} days
+              </span>
+            </td>
           </tr>
         ))}
       </DataTable>
@@ -225,17 +453,40 @@ export function CustomerDuesReportPage() {
 export function ReferralReportPage() {
   const f = useReportQuery()
   const q = useQuery({ queryKey: queryKeys.reports('referrals', f.query), queryFn: () => reportApi.referrals(f.query) })
+
   return (
     <>
-      <PageHeader title="Referral report" />
-      <Filters search={f.search} setSearch={f.setSearch} from={f.from} to={f.to} setRange={(a, b) => { f.setFrom(a); f.setTo(b) }} period={f.period} setPeriod={f.setPeriod} />
-      <DataTable loading={q.isLoading} columns={['Referrer', 'Count', 'Pending', 'Credited', 'Redeemed']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={f.setPage}>
+      <PageHeader
+        title="Referral Program Performance"
+        subtitle="Analysis of referral program incentives and reward redemptions"
+      />
+
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+      />
+
+      <DataTable
+        loading={q.isLoading}
+        columns={['Referrer Member', 'Referrals Count', 'Pending Rewards', 'Credited Rewards', 'Redeemed in POS']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={f.setPage}
+      >
         {q.data?.items.map((r) => (
           <tr key={r.referrerCustomerId}>
-            <td>{r.referrerName}</td>
-            <td>{r.referralCount}</td>
+            <td className="fw-bold text-navy-900">{r.referrerName}</td>
+            <td><span className="badge bg-light text-dark border">{r.referralCount}</span></td>
             <td><CurrencyDisplay value={r.pendingRewards} /></td>
-            <td><CurrencyDisplay value={r.creditedRewards} /></td>
+            <td className="fw-bold text-success"><CurrencyDisplay value={r.creditedRewards} /></td>
             <td><CurrencyDisplay value={r.redeemedRewards} /></td>
           </tr>
         ))}
@@ -247,21 +498,47 @@ export function ReferralReportPage() {
 export function ProfitReportPage() {
   const f = useReportQuery()
   const q = useQuery({ queryKey: queryKeys.reports('profit', f.query), queryFn: () => reportApi.profit(f.query) })
+
   return (
     <>
-      <PageHeader title="Profit report" subtitle="Admin only · historical purchase cost" />
-      <Filters search={f.search} setSearch={f.setSearch} from={f.from} to={f.to} setRange={(a, b) => { f.setFrom(a); f.setTo(b) }} period={f.period} setPeriod={f.setPeriod} />
-      <DataTable loading={q.isLoading} columns={['Bill', 'Date', 'Product', 'Qty', 'Selling', 'Cost', 'Discount', 'Profit']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={f.setPage}>
+      <PageHeader
+        title="Profit & Margin Analysis (Admin Only)"
+        subtitle="Gross margins calculated against historical weighted purchase costs"
+      />
+
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+      />
+
+      <DataTable
+        loading={q.isLoading}
+        columns={['Bill Number', 'Date', 'Product SKU / Name', 'Qty', 'Selling Amount', 'Historical Cost', 'Discount', 'Net Profit']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={f.setPage}
+      >
         {q.data?.items.map((r, i) => (
           <tr key={`${r.billNumber}-${r.productCode}-${i}`}>
-            <td>{r.billNumber}</td>
-            <td>{formatDateTime(r.billDate)}</td>
-            <td>{r.productName}</td>
+            <td className="font-monospace fw-bold">{r.billNumber}</td>
+            <td className="small text-muted">{formatDateTime(r.billDate)}</td>
+            <td>
+              <div className="fw-semibold text-navy-900">{r.productName}</div>
+              <div className="small text-muted font-monospace">{r.productCode}</div>
+            </td>
             <td>{r.quantity}</td>
             <td><CurrencyDisplay value={r.sellingAmount} /></td>
-            <td><CurrencyDisplay value={r.historicalPurchaseAmount} /></td>
-            <td><CurrencyDisplay value={r.discount} /></td>
-            <td><CurrencyDisplay value={r.profit} /></td>
+            <td className="text-muted"><CurrencyDisplay value={r.historicalPurchaseAmount} /></td>
+            <td className="text-danger">{r.discount ? <CurrencyDisplay value={r.discount} /> : '—'}</td>
+            <td className="fw-bold text-success"><CurrencyDisplay value={r.profit} /></td>
           </tr>
         ))}
       </DataTable>

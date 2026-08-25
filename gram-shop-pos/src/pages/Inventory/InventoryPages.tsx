@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { inventoryApi } from '../../api/inventoryApi'
 import { productApi } from '../../api/productApi'
@@ -9,6 +10,7 @@ import { useStore } from '../../context/StoreContext'
 import { PageHeader, SearchBox, StatusBadge, CurrencyDisplay } from '../../components/common/Feedback'
 import { StoreSelector } from '../../components/common/StoreSelector'
 import { DataTable } from '../../components/tables/DataTable'
+import { FormField } from '../../components/common/FormField'
 import { formatDateTime } from '../../utils/format'
 import { MOVEMENT_LABELS } from '../../constants/labels'
 import { useDebounce } from '../../hooks/useDebounce'
@@ -20,22 +22,75 @@ export function StockPage() {
   const [low, setLow] = useState(false)
   const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined, lowStockOnly: low || undefined }
   const q = useQuery({ queryKey: queryKeys.inventory(query), queryFn: () => inventoryApi.list(query) })
+
   return (
     <>
-      <PageHeader title="Stock" />
+      <PageHeader
+        title="Stock & Inventory Balances"
+        subtitle="Live on-hand physical stock across store branches"
+        actions={
+          <div className="page-header-actions">
+            <Link to="/inventory/stock-in" className="btn btn-gold">
+              <i className="bi bi-box-arrow-in-down me-1" /> Inward Stock
+            </Link>
+            <Link to="/inventory/adjustment" className="btn btn-outline-secondary">
+              <i className="bi bi-sliders me-1" /> Adjust Stock
+            </Link>
+            <Link to="/inventory/transfer" className="btn btn-outline-secondary">
+              <i className="bi bi-arrow-left-right me-1" /> Store Transfer
+            </Link>
+          </div>
+        }
+      />
+
       <div className="filter-bar">
-        <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} />
+        <SearchBox
+          value={search}
+          onChange={(v) => {
+            setSearch(v)
+            setPage(1)
+          }}
+          placeholder="Filter by product name or SKU code…"
+        />
         <StoreSelector />
-        <label className="form-check"><input type="checkbox" className="form-check-input" checked={low} onChange={(e) => setLow(e.target.checked)} /> Low stock</label>
+        <div className="form-check form-switch ms-2">
+          <input
+            type="checkbox"
+            className="form-check-input"
+            id="lowCheck"
+            checked={low}
+            onChange={(e) => setLow(e.target.checked)}
+          />
+          <label className="form-check-label fw-semibold small text-muted" htmlFor="lowCheck">
+            Low Stock Alerts
+          </label>
+        </div>
       </div>
-      <DataTable loading={q.isLoading} error={q.isError ? 'Could not load stock' : null} columns={['Product', 'Store', 'Available', 'Minimum', 'Status']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={setPage}>
+
+      <DataTable
+        loading={q.isLoading}
+        error={q.isError ? 'Could not load inventory stock' : null}
+        columns={['Product SKU / Name', 'Store Branch', 'Available Stock', 'Min Alert Level', 'Stock Health']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={setPage}
+      >
         {q.data?.items.map((i) => (
           <tr key={i.id}>
-            <td>{i.productName}<div className="small text-muted">{i.productCode}</div></td>
-            <td>{i.storeCode}</td>
-            <td>{i.quantity}</td>
-            <td>{i.minimumStockLevel}</td>
-            <td><StatusBadge active={!i.isLowStock} labels={['OK', 'Low']} /></td>
+            <td>
+              <span className="fw-bold text-navy-900">{i.productName}</span>
+              <div className="small text-muted font-monospace">{i.productCode}</div>
+            </td>
+            <td>
+              <span className="badge bg-light text-dark border">{i.storeCode}</span>
+            </td>
+            <td>
+              <strong className="fs-6 text-dark">{i.quantity}</strong>
+            </td>
+            <td className="text-muted">{i.minimumStockLevel}</td>
+            <td>
+              <StatusBadge active={!i.isLowStock} labels={['Healthy', 'Low Stock']} />
+            </td>
           </tr>
         ))}
       </DataTable>
@@ -43,16 +98,59 @@ export function StockPage() {
   )
 }
 
-function ProductPicker({ storeId, onPick }: { storeId?: number | null; onPick: (id: number, name: string) => void }) {
-  const [q, setQ] = useState('')
+function ProductPicker({
+  storeId,
+  onPick,
+  selectedName,
+}: {
+  storeId?: number | null
+  onPick: (id: number, name: string) => void
+  selectedName?: string
+}) {
+  const [q, setQ] = useState(selectedName || '')
   const d = useDebounce(q, 250)
-  const search = useQuery({ queryKey: queryKeys.productSearch(d, storeId), queryFn: () => productApi.search(d, storeId), enabled: d.length >= 2 })
+  const search = useQuery({
+    queryKey: queryKeys.productSearch(d, storeId),
+    queryFn: () => productApi.search(d, storeId),
+    enabled: d.trim().length >= 2,
+  })
+
   return (
-    <div>
-      <input className="form-control" placeholder="Search product" value={q} onChange={(e) => setQ(e.target.value)} />
-      {search.data?.slice(0, 6).map((p) => (
-        <button key={p.id} type="button" className="btn btn-link d-block" onClick={() => { onPick(p.id, p.productName); setQ(p.productName) }}>{p.productName}</button>
-      ))}
+    <div className="position-relative">
+      <div className="input-group">
+        <span className="input-group-text bg-light text-muted border-end-0">
+          <i className="bi bi-search" />
+        </span>
+        <input
+          className="form-control border-start-0"
+          placeholder="Search by product name, SKU or barcode…"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+        />
+      </div>
+      {d.trim().length >= 2 && search.data?.length ? (
+        <div className="list-group shadow-md position-absolute w-100 mt-1" style={{ zIndex: 20, maxHeight: '200px', overflowY: 'auto' }}>
+          {search.data.slice(0, 6).map((p) => (
+            <button
+              key={p.id}
+              type="button"
+              className="list-group-item list-group-item-action py-2 px-3 d-flex justify-content-between align-items-center small"
+              onClick={() => {
+                onPick(p.id, p.productName)
+                setQ(`${p.productName} (${p.productCode})`)
+              }}
+            >
+              <div>
+                <strong>{p.productName}</strong>
+                <div className="text-muted small">{p.productCode}</div>
+              </div>
+              <span className="badge bg-light text-dark border">
+                Stock: {p.stockQuantity ?? 0} {p.unit}
+              </span>
+            </button>
+          ))}
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -62,30 +160,162 @@ export function StockInPage() {
   const qc = useQueryClient()
   const [storeId, setStoreId] = useState(selectedStoreId ?? stores[0]?.storeId)
   const [productId, setProductId] = useState<number | null>(null)
+  const [productName, setProductName] = useState('')
   const [qty, setQty] = useState(1)
   const [price, setPrice] = useState<number | ''>('')
   const [supplier, setSupplier] = useState('')
   const [invoice, setInvoice] = useState('')
   const [reason, setReason] = useState('')
+
   const mut = useMutation({
-    mutationFn: () => inventoryApi.stockIn({ storeId: storeId!, productId: productId!, quantity: qty, purchasePrice: price === '' ? undefined : Number(price), supplierName: supplier || undefined, invoiceNumber: invoice || undefined, reason: reason || undefined }),
+    mutationFn: () =>
+      inventoryApi.stockIn({
+        storeId: storeId!,
+        productId: productId!,
+        quantity: qty,
+        purchasePrice: price === '' ? undefined : Number(price),
+        supplierName: supplier || undefined,
+        invoiceNumber: invoice || undefined,
+        reason: reason || undefined,
+      }),
     onSuccess: async () => {
-      toast.success('Stock in saved')
+      toast.success('Stock inward recorded successfully')
+      setProductId(null)
+      setProductName('')
+      setQty(1)
+      setPrice('')
+      setSupplier('')
+      setInvoice('')
+      setReason('')
       await qc.invalidateQueries({ queryKey: ['inventory'] })
     },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to record stock inward')
+    },
   })
+
   return (
     <>
-      <PageHeader title="Stock in" />
-      <form className="card-panel form-grid" onSubmit={(e) => { e.preventDefault(); if (productId && storeId) mut.mutate() }}>
-        <label>Store<select className="form-select" value={storeId ?? ''} onChange={(e) => setStoreId(Number(e.target.value))}>{stores.map((s) => <option key={s.storeId} value={s.storeId}>{s.storeName}</option>)}</select></label>
-        <label>Product<ProductPicker storeId={storeId} onPick={(id) => setProductId(id)} /></label>
-        <label>Quantity<input className="form-control" type="number" min={0.01} value={qty} onChange={(e) => setQty(Number(e.target.value))} /></label>
-        <label>Purchase price<input className="form-control" type="number" value={price} onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))} /></label>
-        <label>Supplier<input className="form-control" value={supplier} onChange={(e) => setSupplier(e.target.value)} /></label>
-        <label>Invoice no.<input className="form-control" value={invoice} onChange={(e) => setInvoice(e.target.value)} /></label>
-        <label>Reason<input className="form-control" value={reason} onChange={(e) => setReason(e.target.value)} /></label>
-        <div><button className="btn btn-gold" disabled={mut.isPending || !productId}>Save stock in</button></div>
+      <PageHeader
+        title="Stock Inward (Stock In)"
+        subtitle="Receive new items from suppliers or central warehouse into store inventory"
+        actions={
+          <Link to="/inventory/stock" className="btn btn-outline-secondary">
+            <i className="bi bi-arrow-left me-1" /> View Stock
+          </Link>
+        }
+      />
+
+      <form
+        className="card-panel"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!productId) {
+            toast.error('Please select a product item first')
+            return
+          }
+          if (productId && storeId) mut.mutate()
+        }}
+      >
+        <div className="form-section-title">
+          <i className="bi bi-box-arrow-in-down text-gold" /> Inward Batch Details
+        </div>
+        <div className="form-grid">
+          <FormField label="Receiving Store Branch" required>
+            <select
+              className="form-select"
+              value={storeId ?? ''}
+              onChange={(e) => setStoreId(Number(e.target.value))}
+            >
+              {stores.map((s) => (
+                <option key={s.storeId} value={s.storeId}>
+                  {s.storeName}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Select Product Item" required hint={productName ? `Selected: ${productName}` : 'Search above to choose'}>
+            <ProductPicker
+              storeId={storeId}
+              selectedName={productName}
+              onPick={(id, name) => {
+                setProductId(id)
+                setProductName(name)
+              }}
+            />
+          </FormField>
+
+          <FormField label="Inward Quantity" required>
+            <input
+              className="form-control"
+              type="number"
+              min={0.01}
+              step="any"
+              value={qty}
+              onChange={(e) => setQty(Number(e.target.value))}
+              required
+            />
+          </FormField>
+
+          <FormField label="Unit Purchase Price (₹, Optional)">
+            <div className="input-group">
+              <span className="input-group-text">₹</span>
+              <input
+                className="form-control"
+                type="number"
+                step="any"
+                min={0}
+                placeholder="Cost per unit"
+                value={price}
+                onChange={(e) => setPrice(e.target.value === '' ? '' : Number(e.target.value))}
+              />
+            </div>
+          </FormField>
+
+          <FormField label="Supplier / Vendor Name">
+            <input
+              className="form-control"
+              placeholder="e.g. Surat Bullion Traders"
+              value={supplier}
+              onChange={(e) => setSupplier(e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Supplier Invoice / DC No.">
+            <input
+              className="form-control"
+              placeholder="e.g. INV-2026-991"
+              value={invoice}
+              onChange={(e) => setInvoice(e.target.value)}
+            />
+          </FormField>
+
+          <FormField label="Inward Reason / Notes">
+            <input
+              className="form-control"
+              placeholder="e.g. Fresh stock arrival, PO-102"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </FormField>
+        </div>
+
+        <div className="d-flex justify-content-end gap-2 pt-3 mt-4 border-top">
+          <Link to="/inventory/stock" className="btn btn-light border px-4">
+            Cancel
+          </Link>
+          <button className="btn btn-gold px-4 fw-bold" type="submit" disabled={mut.isPending || !productId}>
+            {mut.isPending ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                Saving Inward…
+              </>
+            ) : (
+              <><i className="bi bi-check2 me-1" /> Save Inward Stock</>
+            )}
+          </button>
+        </div>
       </form>
     </>
   )
@@ -96,26 +326,134 @@ export function StockAdjustPage() {
   const qc = useQueryClient()
   const [storeId, setStoreId] = useState(selectedStoreId ?? stores[0]?.storeId)
   const [productId, setProductId] = useState<number | null>(null)
+  const [productName, setProductName] = useState('')
   const [qty, setQty] = useState(1)
   const [increase, setIncrease] = useState(true)
   const [reason, setReason] = useState('')
+
   const mut = useMutation({
-    mutationFn: () => inventoryApi.adjust({ storeId: storeId!, productId: productId!, quantity: qty, isIncrease: increase, reason }),
+    mutationFn: () =>
+      inventoryApi.adjust({
+        storeId: storeId!,
+        productId: productId!,
+        quantity: qty,
+        isIncrease: increase,
+        reason,
+      }),
     onSuccess: async () => {
-      toast.success('Adjustment saved')
+      toast.success('Stock adjustment saved successfully')
+      setProductId(null)
+      setProductName('')
+      setQty(1)
+      setReason('')
       await qc.invalidateQueries({ queryKey: ['inventory'] })
     },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to record adjustment')
+    },
   })
+
   return (
     <>
-      <PageHeader title="Stock adjustment" />
-      <form className="card-panel form-grid" onSubmit={(e) => { e.preventDefault(); mut.mutate() }}>
-        <label>Store<select className="form-select" value={storeId ?? ''} onChange={(e) => setStoreId(Number(e.target.value))}>{stores.map((s) => <option key={s.storeId} value={s.storeId}>{s.storeName}</option>)}</select></label>
-        <label>Product<ProductPicker storeId={storeId} onPick={(id) => setProductId(id)} /></label>
-        <label>Quantity<input className="form-control" type="number" min={0.01} value={qty} onChange={(e) => setQty(Number(e.target.value))} /></label>
-        <label>Direction<select className="form-select" value={increase ? 'in' : 'out'} onChange={(e) => setIncrease(e.target.value === 'in')}><option value="in">Increase</option><option value="out">Decrease</option></select></label>
-        <label>Reason<input className="form-control" required value={reason} onChange={(e) => setReason(e.target.value)} /></label>
-        <div><button className="btn btn-gold" disabled={!productId || !reason || mut.isPending}>Save adjustment</button></div>
+      <PageHeader
+        title="Stock Physical Adjustment"
+        subtitle="Reconcile inventory discrepancies (damaged goods, audit shrinkage, or corrections)"
+        actions={
+          <Link to="/inventory/stock" className="btn btn-outline-secondary">
+            <i className="bi bi-arrow-left me-1" /> View Stock
+          </Link>
+        }
+      />
+
+      <form
+        className="card-panel"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!productId) {
+            toast.error('Please pick a product item')
+            return
+          }
+          mut.mutate()
+        }}
+      >
+        <div className="form-section-title">
+          <i className="bi bi-sliders text-gold" /> Adjustment Details
+        </div>
+        <div className="form-grid">
+          <FormField label="Store Branch" required>
+            <select
+              className="form-select"
+              value={storeId ?? ''}
+              onChange={(e) => setStoreId(Number(e.target.value))}
+            >
+              {stores.map((s) => (
+                <option key={s.storeId} value={s.storeId}>
+                  {s.storeName}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Select Product Item" required hint={productName ? `Selected: ${productName}` : 'Search above to choose'}>
+            <ProductPicker
+              storeId={storeId}
+              selectedName={productName}
+              onPick={(id, name) => {
+                setProductId(id)
+                setProductName(name)
+              }}
+            />
+          </FormField>
+
+          <FormField label="Adjustment Direction" required>
+            <select
+              className="form-select"
+              value={increase ? 'in' : 'out'}
+              onChange={(e) => setIncrease(e.target.value === 'in')}
+            >
+              <option value="in">➕ Increase Stock (+)</option>
+              <option value="out">➖ Decrease Stock (-)</option>
+            </select>
+          </FormField>
+
+          <FormField label="Quantity to Adjust" required>
+            <input
+              className="form-control"
+              type="number"
+              min={0.01}
+              step="any"
+              value={qty}
+              onChange={(e) => setQty(Number(e.target.value))}
+              required
+            />
+          </FormField>
+
+          <FormField label="Reason for Adjustment" required hint="e.g. Broken clasp, audit count variance">
+            <input
+              className="form-control"
+              required
+              placeholder="Mandatory reason for audit trail"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </FormField>
+        </div>
+
+        <div className="d-flex justify-content-end gap-2 pt-3 mt-4 border-top">
+          <Link to="/inventory/stock" className="btn btn-light border px-4">
+            Cancel
+          </Link>
+          <button className="btn btn-gold px-4 fw-bold" type="submit" disabled={!productId || !reason || mut.isPending}>
+            {mut.isPending ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                Applying Adjustment…
+              </>
+            ) : (
+              <><i className="bi bi-check2 me-1" /> Apply Stock Adjustment</>
+            )}
+          </button>
+        </div>
       </form>
     </>
   )
@@ -127,25 +465,138 @@ export function StockTransferPage() {
   const [fromStoreId, setFrom] = useState(stores[0]?.storeId)
   const [toStoreId, setTo] = useState(stores[1]?.storeId ?? stores[0]?.storeId)
   const [productId, setProductId] = useState<number | null>(null)
+  const [productName, setProductName] = useState('')
   const [qty, setQty] = useState(1)
   const [reason, setReason] = useState('')
+
   const mut = useMutation({
-    mutationFn: () => inventoryApi.transfer({ fromStoreId: fromStoreId!, toStoreId: toStoreId!, reason, items: [{ productId: productId!, quantity: qty }] }),
+    mutationFn: () =>
+      inventoryApi.transfer({
+        fromStoreId: fromStoreId!,
+        toStoreId: toStoreId!,
+        reason,
+        items: [{ productId: productId!, quantity: qty }],
+      }),
     onSuccess: async () => {
-      toast.success('Transfer saved')
+      toast.success('Stock transfer recorded successfully')
+      setProductId(null)
+      setProductName('')
+      setQty(1)
+      setReason('')
       await qc.invalidateQueries({ queryKey: ['inventory'] })
     },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to complete store transfer')
+    },
   })
+
   return (
     <>
-      <PageHeader title="Stock transfer" />
-      <form className="card-panel form-grid" onSubmit={(e) => { e.preventDefault(); mut.mutate() }}>
-        <label>From store<select className="form-select" value={fromStoreId ?? ''} onChange={(e) => setFrom(Number(e.target.value))}>{stores.map((s) => <option key={s.storeId} value={s.storeId}>{s.storeName}</option>)}</select></label>
-        <label>To store<select className="form-select" value={toStoreId ?? ''} onChange={(e) => setTo(Number(e.target.value))}>{stores.map((s) => <option key={s.storeId} value={s.storeId}>{s.storeName}</option>)}</select></label>
-        <label>Product<ProductPicker storeId={fromStoreId} onPick={(id) => setProductId(id)} /></label>
-        <label>Quantity<input className="form-control" type="number" min={0.01} value={qty} onChange={(e) => setQty(Number(e.target.value))} /></label>
-        <label>Reason<input className="form-control" value={reason} onChange={(e) => setReason(e.target.value)} /></label>
-        <div><button className="btn btn-gold" disabled={!productId || mut.isPending}>Transfer</button></div>
+      <PageHeader
+        title="Inter-Store Stock Transfer"
+        subtitle="Move product stock between retail branch locations"
+        actions={
+          <Link to="/inventory/stock" className="btn btn-outline-secondary">
+            <i className="bi bi-arrow-left me-1" /> View Stock
+          </Link>
+        }
+      />
+
+      <form
+        className="card-panel"
+        onSubmit={(e) => {
+          e.preventDefault()
+          if (!productId) {
+            toast.error('Please pick a product item')
+            return
+          }
+          if (fromStoreId === toStoreId) {
+            toast.error('Origin and destination stores cannot be the same')
+            return
+          }
+          mut.mutate()
+        }}
+      >
+        <div className="form-section-title">
+          <i className="bi bi-arrow-left-right text-gold" /> Transfer Manifest
+        </div>
+        <div className="form-grid">
+          <FormField label="Origin Branch (From)" required>
+            <select
+              className="form-select"
+              value={fromStoreId ?? ''}
+              onChange={(e) => setFrom(Number(e.target.value))}
+            >
+              {stores.map((s) => (
+                <option key={s.storeId} value={s.storeId}>
+                  {s.storeName}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Destination Branch (To)" required>
+            <select
+              className="form-select"
+              value={toStoreId ?? ''}
+              onChange={(e) => setTo(Number(e.target.value))}
+            >
+              {stores.map((s) => (
+                <option key={s.storeId} value={s.storeId}>
+                  {s.storeName}
+                </option>
+              ))}
+            </select>
+          </FormField>
+
+          <FormField label="Select Product Item" required hint={productName ? `Selected: ${productName}` : 'Search above to choose'}>
+            <ProductPicker
+              storeId={fromStoreId}
+              selectedName={productName}
+              onPick={(id, name) => {
+                setProductId(id)
+                setProductName(name)
+              }}
+            />
+          </FormField>
+
+          <FormField label="Transfer Quantity" required>
+            <input
+              className="form-control"
+              type="number"
+              min={0.01}
+              step="any"
+              value={qty}
+              onChange={(e) => setQty(Number(e.target.value))}
+              required
+            />
+          </FormField>
+
+          <FormField label="Transfer Reason / Dispatch Ref">
+            <input
+              className="form-control"
+              placeholder="e.g. Branch stock balancing, DC-04"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+            />
+          </FormField>
+        </div>
+
+        <div className="d-flex justify-content-end gap-2 pt-3 mt-4 border-top">
+          <Link to="/inventory/stock" className="btn btn-light border px-4">
+            Cancel
+          </Link>
+          <button className="btn btn-gold px-4 fw-bold" type="submit" disabled={!productId || mut.isPending}>
+            {mut.isPending ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" />
+                Dispatching Transfer…
+              </>
+            ) : (
+              <><i className="bi bi-send me-1" /> Dispatch Transfer</>
+            )}
+          </button>
+        </div>
       </form>
     </>
   )
@@ -157,25 +608,58 @@ export function StockLedgerPage() {
   const [page, setPage] = useState(1)
   const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined }
   const q = useQuery({ queryKey: queryKeys.inventoryLedger(query), queryFn: () => inventoryApi.ledger(query) })
+
   return (
     <>
-      <PageHeader title="Stock ledger" />
+      <PageHeader
+        title="Stock Audit Ledger"
+        subtitle="Complete historical ledger of every stock inward, sale deduction, return, and transfer"
+      />
+
       <div className="filter-bar">
-        <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} />
+        <SearchBox
+          value={search}
+          onChange={(v) => {
+            setSearch(v)
+            setPage(1)
+          }}
+          placeholder="Filter by product name, code or reference…"
+        />
         <StoreSelector />
       </div>
-      <DataTable loading={q.isLoading} error={q.isError ? 'Could not load ledger' : null} columns={['Date', 'Product', 'Store', 'Type', 'Before', 'Qty', 'After', 'Reference', 'Reason']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={setPage}>
+
+      <DataTable
+        loading={q.isLoading}
+        error={q.isError ? 'Could not load stock ledger' : null}
+        columns={['Date & Time', 'Product Details', 'Store ID', 'Movement Type', 'Qty Before', 'Moved Qty', 'Qty After', 'Reference No.', 'Reason']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={setPage}
+      >
         {q.data?.items.map((m) => (
           <tr key={m.id}>
-            <td>{formatDateTime(m.createdDate)}</td>
-            <td>{m.productName}<div className="small text-muted">{m.productCode}</div></td>
-            <td>{m.storeId}</td>
-            <td>{MOVEMENT_LABELS[m.movementType] ?? m.movementType}</td>
+            <td className="small text-muted">{formatDateTime(m.createdDate)}</td>
+            <td>
+              <div className="fw-semibold text-navy-900">{m.productName}</div>
+              <div className="small text-muted font-monospace">{m.productCode}</div>
+            </td>
+            <td>
+              <span className="badge bg-light text-dark border">Store #{m.storeId}</span>
+            </td>
+            <td>
+              <span className="badge bg-light text-dark border">
+                {MOVEMENT_LABELS[m.movementType] ?? m.movementType}
+              </span>
+            </td>
             <td>{m.previousQuantity}</td>
-            <td>{m.quantity}</td>
-            <td>{m.newQuantity}</td>
-            <td>{m.referenceNumber}</td>
-            <td>{m.reason}</td>
+            <td>
+              <strong className={m.quantity > 0 ? 'text-success' : 'text-danger'}>
+                {m.quantity > 0 ? `+${m.quantity}` : m.quantity}
+              </strong>
+            </td>
+            <td className="fw-bold text-dark">{m.newQuantity}</td>
+            <td className="small font-monospace">{m.referenceNumber || '—'}</td>
+            <td className="small text-muted">{m.reason || '—'}</td>
           </tr>
         ))}
       </DataTable>
@@ -188,17 +672,33 @@ export function PurchasesPage() {
   const [page, setPage] = useState(1)
   const query = { pageNumber: page, pageSize: 20, storeId: selectedStoreId ?? undefined }
   const q = useQuery({ queryKey: queryKeys.purchases(query), queryFn: () => purchaseApi.list(query) })
+
   return (
     <>
-      <PageHeader title="Purchases" />
-      <DataTable loading={q.isLoading} error={q.isError ? 'Could not load purchases' : null} columns={['Invoice', 'Supplier', 'Store', 'Date', 'Total']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={setPage}>
+      <PageHeader
+        title="Purchase Invoices & Inwards"
+        subtitle="Vendor purchasing records and total costs"
+      />
+
+      <DataTable
+        loading={q.isLoading}
+        error={q.isError ? 'Could not load purchases' : null}
+        columns={['Invoice Number', 'Supplier / Vendor', 'Store Branch', 'Purchase Date', 'Total Value']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={setPage}
+      >
         {q.data?.items.map((p) => (
           <tr key={p.id}>
-            <td>{p.invoiceNumber}</td>
+            <td className="fw-bold font-monospace">{p.invoiceNumber}</td>
             <td>{p.supplierName}</td>
-            <td>{p.storeCode}</td>
-            <td>{formatDateTime(p.purchaseDate)}</td>
-            <td><CurrencyDisplay value={p.total} /></td>
+            <td>
+              <span className="badge bg-light text-dark border">{p.storeCode}</span>
+            </td>
+            <td className="small text-muted">{formatDateTime(p.purchaseDate)}</td>
+            <td className="fw-bold text-navy-900">
+              <CurrencyDisplay value={p.total} />
+            </td>
           </tr>
         ))}
       </DataTable>

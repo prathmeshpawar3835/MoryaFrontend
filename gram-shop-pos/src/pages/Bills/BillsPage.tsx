@@ -18,41 +18,121 @@ export function BillsPage() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [status, setStatus] = useState<number | ''>('')
-  const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined, fromDate: from || undefined, toDate: to || undefined, status: status || undefined }
+  const query = {
+    pageNumber: page,
+    pageSize: 20,
+    search,
+    storeId: selectedStoreId ?? undefined,
+    fromDate: from || undefined,
+    toDate: to || undefined,
+    status: status || undefined,
+  }
   const q = useQuery({ queryKey: queryKeys.bills(query), queryFn: () => billApi.list(query) })
 
   return (
     <>
-      <PageHeader title="Bills" subtitle="Completed and credit invoices" />
+      <PageHeader
+        title="Billing History & Invoices"
+        subtitle="Search, view, print invoices, and initiate customer returns or exchanges"
+        actions={
+          <Link to="/pos" className="btn btn-pos-shortcut">
+            <i className="bi bi-cash-stack" />
+            <span>New POS Bill</span>
+          </Link>
+        }
+      />
+
       <div className="filter-bar">
-        <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Bill number / customer / mobile" />
+        <SearchBox
+          value={search}
+          onChange={(v) => {
+            setSearch(v)
+            setPage(1)
+          }}
+          placeholder="Bill number / customer name / mobile…"
+        />
         <StoreSelector />
-        <DateRangePicker from={from} to={to} onChange={(a, b) => { setFrom(a); setTo(b); setPage(1) }} />
-        <select className="form-select" value={status} onChange={(e) => setStatus(e.target.value ? Number(e.target.value) : '')} aria-label="Status">
-          <option value="">All statuses</option>
+        <DateRangePicker
+          from={from}
+          to={to}
+          onChange={(a, b) => {
+            setFrom(a)
+            setTo(b)
+            setPage(1)
+          }}
+        />
+        <select
+          className="form-select"
+          style={{ minWidth: '150px' }}
+          value={status}
+          onChange={(e) => setStatus(e.target.value ? Number(e.target.value) : '')}
+          aria-label="Filter bill status"
+        >
+          <option value="">All Statuses</option>
           {Object.entries(BILL_STATUS_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
+            <option key={k} value={k}>
+              {v}
+            </option>
           ))}
         </select>
       </div>
-      <DataTable loading={q.isLoading} error={q.isError ? 'Could not load bills' : null} columns={['Bill', 'Date', 'Customer', 'Store', 'Amount', 'Payment', 'Status', 'Actions']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={setPage}>
+
+      <DataTable
+        loading={q.isLoading}
+        error={q.isError ? 'Could not load billing history' : null}
+        columns={['Invoice Number', 'Date & Time', 'Customer', 'Store', 'Grand Total', 'Payment Mode', 'Status', 'Actions']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={setPage}
+      >
         {q.data?.items.map((b) => (
           <tr key={b.id}>
-            <td>{b.billNumber}</td>
-            <td>{formatDateTime(b.billDate)}</td>
-            <td>{b.customerName || 'Walk-in'}<div className="small text-muted">{b.customerMobile}</div></td>
-            <td>{b.storeCode}</td>
-            <td><CurrencyDisplay value={b.grandTotal} /></td>
-            <td>{b.payments.map((p) => PAYMENT_LABELS[p.paymentMode] ?? p.paymentMode).join(', ') || '—'}</td>
-            <td>{BILL_STATUS_LABELS[b.status] ?? b.status}</td>
             <td>
-              <Link className="btn btn-sm btn-outline-secondary me-1" to={`/bills/${b.id}`}>View</Link>
-              {b.status !== BillStatus.Cancelled ? (
-                <>
-                  <Link className="btn btn-sm btn-outline-secondary me-1" to={`/returns/new?billId=${b.id}`}>Return</Link>
-                  <Link className="btn btn-sm btn-outline-secondary" to={`/returns/exchange?billId=${b.id}`}>Exchange</Link>
-                </>
-              ) : null}
+              <Link to={`/bills/${b.id}`} className="fw-bold text-navy-900 text-decoration-none">
+                {b.billNumber}
+              </Link>
+            </td>
+            <td className="small text-muted">{formatDateTime(b.billDate)}</td>
+            <td>
+              <div className="fw-semibold text-dark">{b.customerName || <span className="text-muted fst-italic">Walk-in</span>}</div>
+              {b.customerMobile ? <div className="small text-muted font-monospace">{b.customerMobile}</div> : null}
+            </td>
+            <td>
+              <span className="badge bg-light text-dark border">{b.storeCode}</span>
+            </td>
+            <td className="fw-bold text-navy-900">
+              <CurrencyDisplay value={b.grandTotal} />
+            </td>
+            <td>
+              <div className="d-flex flex-wrap gap-1">
+                {b.payments.map((p) => (
+                  <span key={p.id} className="badge bg-light text-dark border small">
+                    {PAYMENT_LABELS[p.paymentMode] ?? p.paymentMode}
+                  </span>
+                ))}
+              </div>
+            </td>
+            <td>
+              <span className={`badge ${b.status === 1 ? 'bg-success-subtle text-success' : b.status === 4 ? 'bg-danger-subtle text-danger' : 'bg-secondary-subtle text-secondary'} rounded-pill px-2 py-1`}>
+                {BILL_STATUS_LABELS[b.status] ?? b.status}
+              </span>
+            </td>
+            <td>
+              <div className="d-flex gap-1">
+                <Link className="btn btn-sm btn-outline-secondary" to={`/bills/${b.id}`} title="View Invoice">
+                  <i className="bi bi-eye me-1" /> View
+                </Link>
+                {b.status !== BillStatus.Cancelled ? (
+                  <>
+                    <Link className="btn btn-sm btn-outline-secondary" to={`/returns/new?billId=${b.id}`} title="Initiate Return">
+                      Return
+                    </Link>
+                    <Link className="btn btn-sm btn-outline-secondary" to={`/returns/exchange?billId=${b.id}`} title="Initiate Exchange">
+                      Exchange
+                    </Link>
+                  </>
+                ) : null}
+              </div>
             </td>
           </tr>
         ))}
