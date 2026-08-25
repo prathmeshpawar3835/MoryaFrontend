@@ -7,8 +7,8 @@ import { useStore } from '../../context/StoreContext'
 import { PageHeader, SearchBox, DateRangePicker, CurrencyDisplay } from '../../components/common/Feedback'
 import { StoreSelector } from '../../components/common/StoreSelector'
 import { DataTable } from '../../components/tables/DataTable'
-import { formatDateTime } from '../../utils/format'
-import { RETURN_KIND_LABELS } from '../../constants/labels'
+import { formatDate, formatDateTime } from '../../utils/format'
+import { RETURN_KIND_LABELS, WHATSAPP_STATUS_LABELS } from '../../constants/labels'
 import type { ReportQuery } from '../../types'
 
 function useReportQuery() {
@@ -536,6 +536,56 @@ export function ReferralReportPage() {
             <td><CurrencyDisplay value={r.pendingRewards} /></td>
             <td className="fw-bold text-success"><CurrencyDisplay value={r.creditedRewards} /></td>
             <td><CurrencyDisplay value={r.redeemedRewards} /></td>
+          </tr>
+        ))}
+      </DataTable>
+    </>
+  )
+}
+
+export function BirthdayReportPage() {
+  const f = useReportQuery()
+  const q = useQuery({
+    queryKey: queryKeys.reports('birthdays', { ...f.query, period: f.period || 'daily' }),
+    queryFn: () => reportApi.birthdays({ ...f.query, period: f.period || 'daily' }),
+  })
+
+  return (
+    <>
+      <PageHeader
+        title="Birthday Customer Report"
+        subtitle="Today's birthday customers, WhatsApp status, and offer redemptions"
+      />
+      <Filters
+        search={f.search}
+        setSearch={f.setSearch}
+        from={f.from}
+        to={f.to}
+        setRange={(a, b) => {
+          f.setFrom(a)
+          f.setTo(b)
+        }}
+        period={f.period}
+        setPeriod={f.setPeriod}
+      />
+      <DataTable
+        loading={q.isLoading}
+        columns={['Customer Name', 'Mobile', 'Birthday', 'Store', 'Birthday Offer', 'WhatsApp', 'Redeemed', 'Invoice', 'Discount']}
+        page={q.data?.pageNumber}
+        totalPages={q.data?.totalPages}
+        onPage={f.setPage}
+      >
+        {q.data?.items.map((r) => (
+          <tr key={r.customerId}>
+            <td className="fw-bold text-navy-900">{r.customerName}</td>
+            <td className="font-monospace">{r.mobileNumber}</td>
+            <td>{formatDate(r.dateOfBirth)}</td>
+            <td>{r.storeName}</td>
+            <td>{r.birthdayOffer || '—'}</td>
+            <td>{r.whatsAppStatus ? WHATSAPP_STATUS_LABELS[r.whatsAppStatus] ?? r.whatsAppStatus : '—'}</td>
+            <td>{r.redeemed ? 'Redeemed' : 'Not redeemed'}</td>
+            <td className="font-monospace">{r.invoiceNumber || '—'}</td>
+            <td><CurrencyDisplay value={r.discountAmount} /></td>
           </tr>
         ))}
       </DataTable>

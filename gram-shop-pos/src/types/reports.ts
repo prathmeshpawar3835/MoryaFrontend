@@ -37,6 +37,13 @@ export interface Dashboard {
   monthlyReferralDiscount: number
   monthlyReferralCost: number
   totalReferralCost: number
+  todayBirthdayCustomers?: number
+  todayBirthdayMessagesSent?: number
+  todayBirthdayMessagesFailed?: number
+  todayBirthdayOffersRedeemed?: number
+  todayBirthdayDiscount?: number
+  monthlyBirthdayOffersRedeemed?: number
+  monthlyBirthdayDiscount?: number
   totalInventoryProducts: number
   totalInventoryQuantity: number
   lowStockCount: number
@@ -140,6 +147,19 @@ export interface ReferralReportRow {
   redeemedRewards: number
 }
 
+export interface BirthdayReportRow {
+  customerId: number
+  customerName: string
+  mobileNumber: string
+  dateOfBirth?: string | null
+  storeName: string
+  birthdayOffer?: string | null
+  whatsAppStatus?: number | null
+  redeemed: boolean
+  invoiceNumber?: string | null
+  discountAmount: number
+}
+
 export interface ProfitReportRow {
   billNumber: string
   billDate: string
@@ -186,6 +206,10 @@ export interface Settings {
   rewardTrigger: RewardTrigger
   referralStoreWise: boolean
   birthdayDiscountPercent?: number
+  whatsAppEnabled?: boolean
+  whatsAppPhoneNumberId?: string | null
+  whatsAppAccessToken?: string | null
+  whatsAppApiBaseUrl?: string | null
   taxSettings: TaxSetting[]
 }
 

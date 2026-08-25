@@ -44,6 +44,7 @@ const PurchasesReportPage = lazy(() => import('./pages/Reports/ReportPages').the
 const ReturnsReportPage = lazy(() => import('./pages/Reports/ReportPages').then((m) => ({ default: m.ReturnsReportPage })))
 const CustomerDuesReportPage = lazy(() => import('./pages/Reports/ReportPages').then((m) => ({ default: m.CustomerDuesReportPage })))
 const ReferralReportPage = lazy(() => import('./pages/Reports/ReportPages').then((m) => ({ default: m.ReferralReportPage })))
+const BirthdayReportPage = lazy(() => import('./pages/Reports/ReportPages').then((m) => ({ default: m.BirthdayReportPage })))
 const ProfitReportPage = lazy(() => import('./pages/Reports/ReportPages').then((m) => ({ default: m.ProfitReportPage })))
 const StoresSettingsPage = lazy(() => import('./pages/Settings/SettingsPages').then((m) => ({ default: m.StoresSettingsPage })))
 const UsersSettingsPage = lazy(() => import('./pages/Settings/SettingsPages').then((m) => ({ default: m.UsersSettingsPage })))
@@ -54,6 +55,7 @@ const BusinessSettingsPage = lazy(() => import('./pages/Settings/SettingsPages')
 const AuditPage = lazy(() => import('./pages/Settings/SettingsPages').then((m) => ({ default: m.AuditPage })))
 const CustomerLedgerSearchPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.CustomerLedgerSearchPage })))
 const DiscountsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.DiscountsPage })))
+const BirthdayOffersPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.BirthdayOffersPage })))
 const SuppliersPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.SuppliersPage })))
 const RepairsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.RepairsPage })))
 const ProductAnalyticsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.ProductAnalyticsPage })))
@@ -124,6 +126,7 @@ export default function App() {
                     <Route path="/reports/returns" element={<ReturnsReportPage />} />
                     <Route path="/reports/customers" element={<CustomerDuesReportPage />} />
                     <Route path="/reports/referrals" element={<ReferralReportPage />} />
+                    <Route path="/reports/birthdays" element={<BirthdayReportPage />} />
 
                     <Route element={<RoleProtectedRoute feature="inventory.adjust" />}>
                       <Route path="/inventory/adjustment" element={<StockAdjustPage />} />
@@ -148,6 +151,7 @@ export default function App() {
                     </Route>
                     <Route element={<RoleProtectedRoute feature="discounts" />}>
                       <Route path="/settings/discounts" element={<DiscountsPage />} />
+                      <Route path="/settings/birthday-offers" element={<BirthdayOffersPage />} />
                     </Route>
                   </Route>
                 </Route>

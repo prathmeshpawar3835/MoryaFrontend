@@ -78,3 +78,9 @@ export const REPAIR_TYPE_LABELS: Record<number, string> = {
   1: 'Repair',
   2: 'Polish',
 }
+
+export const WHATSAPP_STATUS_LABELS: Record<number, string> = {
+  1: 'Pending',
+  2: 'Sent',
+  3: 'Failed',
+}

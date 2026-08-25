@@ -15,7 +15,8 @@ import { FormField } from '../../components/common/FormField'
 import { Modal } from '../../components/common/Modal'
 import { formatDateTime, formatMoney } from '../../utils/format'
 import { ITEM_STATUS_LABELS, REPAIR_STATUS_LABELS, REPAIR_TYPE_LABELS } from '../../constants/labels'
-import { DiscountKind, RepairJobStatus, RepairJobType } from '../../types'
+import { DiscountKind, OfferCategory, RepairJobStatus, RepairJobType } from '../../types'
+import type { StoreDiscount } from '../../types'
 
 export function CustomerLedgerSearchPage() {
   const navigate = useNavigate()
@@ -87,6 +88,7 @@ export function DiscountsPage() {
       discountApi.create({
         storeId: selectedStoreId ?? stores[0]?.storeId ?? 0,
         name,
+        offerCategory: OfferCategory.Store,
         discountKind: kind,
         value,
         isActive: true,
@@ -144,6 +146,147 @@ export function DiscountsPage() {
           <input className="form-control" type="number" min={0} value={value} onChange={(e) => setValue(Number(e.target.value))} />
         </FormField>
         <button className="btn btn-gold mt-2" type="button" disabled={create.isPending} onClick={() => create.mutate()}>
+          Save
+        </button>
+      </Modal>
+    </>
+  )
+}
+
+export function BirthdayOffersPage() {
+  const { selectedStoreId, stores } = useStore()
+  const qc = useQueryClient()
+  const [open, setOpen] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [name, setName] = useState('Birthday Special Offer')
+  const [description, setDescription] = useState('Valid only on your birthday')
+  const [kind, setKind] = useState<number>(DiscountKind.Percentage)
+  const [value, setValue] = useState(10)
+  const [storeId, setStoreId] = useState<number>(selectedStoreId ?? stores[0]?.storeId ?? 0)
+  const [validFrom, setValidFrom] = useState('')
+  const [validTo, setValidTo] = useState('')
+  const [isActive, setIsActive] = useState(true)
+  const q = useQuery({
+    queryKey: queryKeys.discounts(selectedStoreId, false, OfferCategory.Birthday),
+    queryFn: () => discountApi.list(selectedStoreId, false, OfferCategory.Birthday),
+  })
+
+  const resetForm = (offer?: StoreDiscount) => {
+    setEditingId(offer?.id ?? null)
+    setName(offer?.name ?? 'Birthday Special Offer')
+    setDescription(offer?.description ?? 'Valid only on your birthday')
+    setKind(offer?.discountKind ?? DiscountKind.Percentage)
+    setValue(offer?.value ?? 10)
+    setStoreId(offer?.storeId ?? selectedStoreId ?? stores[0]?.storeId ?? 0)
+    setValidFrom(offer?.validFrom ? offer.validFrom.slice(0, 10) : '')
+    setValidTo(offer?.validTo ? offer.validTo.slice(0, 10) : '')
+    setIsActive(offer?.isActive ?? true)
+    setOpen(true)
+  }
+
+  const payload = {
+    storeId,
+    name,
+    description: description || undefined,
+    offerCategory: OfferCategory.Birthday,
+    discountKind: kind,
+    value,
+    validFrom: validFrom || undefined,
+    validTo: validTo || undefined,
+    isActive,
+  }
+
+  const save = useMutation({
+    mutationFn: () => (editingId ? discountApi.update(editingId, payload) : discountApi.create(payload)),
+    onSuccess: async () => {
+      toast.success(editingId ? 'Birthday offer updated' : 'Birthday offer created')
+      setOpen(false)
+      await qc.invalidateQueries({ queryKey: ['discounts'] })
+    },
+    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to save birthday offer'),
+  })
+
+  return (
+    <>
+      <PageHeader
+        title="Birthday Offers"
+        subtitle="Configure store-wise birthday discounts. They are valid only on the customer's birthday and are never hardcoded."
+        actions={
+          <button className="btn btn-gold" type="button" onClick={() => resetForm()}>
+            Add birthday offer
+          </button>
+        }
+      />
+      <DataTable loading={q.isLoading} columns={['Name', 'Store', 'Offer', 'Validity', 'Status', '']}>
+        {q.data?.map((d) => (
+          <tr key={d.id}>
+            <td>
+              <div className="fw-bold">{d.name}</div>
+              <div className="small text-muted">{d.description || 'Valid only on your birthday'}</div>
+            </td>
+            <td>{d.storeName}</td>
+            <td>{d.discountKind === DiscountKind.Percentage ? `${d.value}% OFF` : formatMoney(d.value)}</td>
+            <td className="small text-muted">{d.validFrom || d.validTo ? `${d.validFrom ?? '—'} → ${d.validTo ?? '—'}` : 'Program always available'}</td>
+            <td>
+              <span className={`badge ${d.isActive ? 'bg-success-subtle text-success' : 'bg-secondary'}`}>{d.isActive ? 'Active' : 'Inactive'}</span>
+            </td>
+            <td className="text-nowrap">
+              <button className="btn btn-sm btn-outline-secondary me-1" type="button" onClick={() => resetForm(d)}>
+                Edit
+              </button>
+              <button
+                className="btn btn-sm btn-outline-secondary me-1"
+                type="button"
+                onClick={() =>
+                  discountApi.update(d.id, { ...d, offerCategory: OfferCategory.Birthday, isActive: !d.isActive }).then(() => qc.invalidateQueries({ queryKey: ['discounts'] }))
+                }
+              >
+                {d.isActive ? 'Deactivate' : 'Activate'}
+              </button>
+              <button className="btn btn-sm btn-outline-danger" type="button" onClick={() => discountApi.remove(d.id).then(() => qc.invalidateQueries({ queryKey: ['discounts'] }))}>
+                Delete
+              </button>
+            </td>
+          </tr>
+        ))}
+      </DataTable>
+      <Modal open={open} title={editingId ? 'Update birthday offer' : 'New birthday offer'} onClose={() => setOpen(false)}>
+        <FormField label="Offer name" required>
+          <input className="form-control" value={name} onChange={(e) => setName(e.target.value)} />
+        </FormField>
+        <FormField label="Description">
+          <textarea className="form-control" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} />
+        </FormField>
+        <FormField label="Store" required>
+          <select className="form-select" value={storeId} onChange={(e) => setStoreId(Number(e.target.value))}>
+            {stores.map((s) => (
+              <option key={s.storeId} value={s.storeId}>
+                {s.storeName}
+              </option>
+            ))}
+          </select>
+        </FormField>
+        <FormField label="Type">
+          <select className="form-select" value={kind} onChange={(e) => setKind(Number(e.target.value))}>
+            <option value={DiscountKind.Percentage}>Percentage</option>
+            <option value={DiscountKind.Amount}>Fixed amount</option>
+          </select>
+        </FormField>
+        <FormField label="Value" required hint="Percentage or rupee amount. Not hardcoded — configured here.">
+          <input className="form-control" type="number" min={0} value={value} onChange={(e) => setValue(Number(e.target.value))} />
+        </FormField>
+        <FormField label="Program valid from">
+          <input className="form-control" type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+        </FormField>
+        <FormField label="Program valid to">
+          <input className="form-control" type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+        </FormField>
+        <div className="form-check form-switch mb-3">
+          <input className="form-check-input" type="checkbox" id="bdayActive" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+          <label className="form-check-label" htmlFor="bdayActive">Active</label>
+        </div>
+        <p className="small text-muted">Redemption is always limited to the customer's birthday even when the program window is longer.</p>
+        <button className="btn btn-gold mt-2" type="button" disabled={save.isPending} onClick={() => save.mutate()}>
           Save
         </button>
       </Modal>

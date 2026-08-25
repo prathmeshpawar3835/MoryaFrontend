@@ -61,7 +61,20 @@ export const customerSchema = z.object({
   storeId: z.number().min(1, 'Store is required'),
   referralCode: z.string().optional(),
   referringMobileNumber: z.string().optional(),
-  dateOfBirth: z.string().optional(),
+  dateOfBirth: z
+    .string()
+    .optional()
+    .refine((value) => {
+      if (!value) return true
+      const parsed = new Date(`${value}T00:00:00`)
+      if (Number.isNaN(parsed.getTime())) return false
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      if (parsed > today) return false
+      const min = new Date(today)
+      min.setFullYear(min.getFullYear() - 120)
+      return parsed >= min
+    }, 'Enter a valid date of birth that is not in the future'),
 })
 
 export const storeSchema = z.object({

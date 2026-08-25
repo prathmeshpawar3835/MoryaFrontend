@@ -79,6 +79,26 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
         </div>
       </div>
 
+      {invoice.birthdayDiscount ? (
+        <div className="p-3 border rounded-3 mb-3">
+          <div className="small fw-bold text-muted mb-2 text-uppercase">Birthday Offer</div>
+          <div className="d-flex justify-content-between small mb-1">
+            <span>Birthday Offer Name</span>
+            <strong>{invoice.birthdayOfferName || 'Birthday Offer'}</strong>
+          </div>
+          {invoice.birthdayDiscountPercent ? (
+            <div className="d-flex justify-content-between small mb-1">
+              <span>Birthday Offer Percentage</span>
+              <strong>{invoice.birthdayDiscountPercent}%</strong>
+            </div>
+          ) : null}
+          <div className="d-flex justify-content-between small mb-0">
+            <span>Birthday Discount</span>
+            <strong className="text-danger">- {formatMoney(invoice.birthdayDiscount)}</strong>
+          </div>
+        </div>
+      ) : null}
+
       {invoice.hasReferral ? (
         <div className="p-3 border rounded-3 mb-3">
           <div className="small fw-bold text-muted mb-2 text-uppercase">Referral Information</div>
@@ -189,7 +209,15 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
                     danger
                   />
                   <Line
-                    label={invoice.birthdayDiscountPercent ? `Birthday Offer (${invoice.birthdayDiscountPercent}%)` : 'Birthday Offer'}
+                    label={
+                      invoice.birthdayOfferName
+                        ? invoice.birthdayDiscountPercent
+                          ? `${invoice.birthdayOfferName} (${invoice.birthdayDiscountPercent}%)`
+                          : invoice.birthdayOfferName
+                        : invoice.birthdayDiscountPercent
+                          ? `Birthday Offer (${invoice.birthdayDiscountPercent}%)`
+                          : 'Birthday Offer'
+                    }
                     value={invoice.birthdayDiscount ?? 0}
                     danger
                   />

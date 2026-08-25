@@ -8,6 +8,7 @@ import type {
   ProfitReportRow,
   Purchase,
   ReferralReportRow,
+  BirthdayReportRow,
   ReportQuery,
   ReturnRecord,
   SalesReport,
@@ -32,6 +33,8 @@ export const reportApi = {
     (await axiosClient.get<PagedResponse<CustomerDueRow>>('/reports/customer-dues', { params: params(query) })).data,
   referrals: async (query: ReportQuery) =>
     (await axiosClient.get<PagedResponse<ReferralReportRow>>('/reports/referrals', { params: params(query) })).data,
+  birthdays: async (query: ReportQuery) =>
+    (await axiosClient.get<PagedResponse<BirthdayReportRow>>('/reports/birthdays', { params: params(query) })).data,
   profit: async (query: ReportQuery) =>
     (await axiosClient.get<PagedResponse<ProfitReportRow>>('/reports/profit', { params: params(query) })).data,
   exportSalesExcel: async (query: ReportQuery) => {

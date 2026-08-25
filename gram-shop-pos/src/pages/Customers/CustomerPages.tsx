@@ -210,7 +210,7 @@ export function CustomersPage() {
           </FormField>
 
           <FormField label="Date of birth (birthday offer)">
-            <input className="form-control" type="date" {...form.register('dateOfBirth')} />
+            <input className="form-control" type="date" max={new Date().toISOString().slice(0, 10)} {...form.register('dateOfBirth')} />
           </FormField>
 
           <div className="row g-2">

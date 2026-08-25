@@ -91,6 +91,9 @@ export type LedgerTransactionType = number
 export const DiscountKind = { Percentage: 1, Amount: 2 } as const
 export type DiscountKind = number
 
+export const OfferCategory = { Store: 1, Birthday: 2 } as const
+export type OfferCategory = number
+
 export const RepairJobType = { Repair: 1, Polish: 2 } as const
 export type RepairJobType = number
 

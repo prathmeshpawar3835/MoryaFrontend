@@ -487,6 +487,27 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
               <textarea className="form-control" rows={2} value={data.returnPolicy ?? ''} onChange={(e) => set('returnPolicy', e.target.value)} />
             </FormField>
           </div>
+          <div className="form-section-title mt-4">
+            <i className="bi bi-whatsapp text-gold" /> WhatsApp Cloud API
+          </div>
+          <p className="small text-muted">Used to send automatic birthday wishes. Leave disabled if a provider is not configured — failed sends are logged and never block billing.</p>
+          <div className="form-grid">
+            <div className="col-12">
+              <div className="form-check form-switch">
+                <input type="checkbox" className="form-check-input" id="waEn" checked={Boolean(data.whatsAppEnabled)} onChange={(e) => set('whatsAppEnabled', e.target.checked)} />
+                <label className="form-check-label fw-bold" htmlFor="waEn">Enable WhatsApp birthday messages</label>
+              </div>
+            </div>
+            <FormField label="Phone number ID">
+              <input className="form-control" value={data.whatsAppPhoneNumberId ?? ''} onChange={(e) => set('whatsAppPhoneNumberId', e.target.value)} />
+            </FormField>
+            <FormField label="Access token" hint="Leave as ******** to keep the stored token.">
+              <input className="form-control" type="password" value={data.whatsAppAccessToken ?? ''} onChange={(e) => set('whatsAppAccessToken', e.target.value)} />
+            </FormField>
+            <FormField label="API base URL" hint="Defaults to https://graph.facebook.com/v21.0">
+              <input className="form-control" value={data.whatsAppApiBaseUrl ?? ''} onChange={(e) => set('whatsAppApiBaseUrl', e.target.value)} placeholder="https://graph.facebook.com/v21.0" />
+            </FormField>
+          </div>
         </>
       ) : null}
 
@@ -589,7 +610,7 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
             <FormField label={data.rewardType === 2 ? 'Referring customer benefit (%)' : 'Referrer member reward (₹)'} hint="Credited to the referring customer's ledger/wallet, linked to this invoice. Default 5% when type is percentage.">
               <input className="form-control" type="number" min={0} step="any" value={data.referrerReward} onChange={(e) => set('referrerReward', Number(e.target.value))} />
             </FormField>
-            <FormField label="Birthday offer discount (%)" hint="Applied automatically on the customer's birthday when date of birth is stored. 0 disables the offer.">
+            <FormField label="Birthday offer default (%)" hint="Used only as the default value when seeding a new store birthday offer. Actual POS discounts come from Birthday Offers and must be selected on the bill.">
               <input className="form-control" type="number" min={0} max={100} step="any" value={data.birthdayDiscountPercent ?? 0} onChange={(e) => set('birthdayDiscountPercent', Number(e.target.value))} />
             </FormField>
             <FormField label="Reward Calculation Type">

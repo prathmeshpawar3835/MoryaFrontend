@@ -147,6 +147,29 @@ export function DashboardPage() {
         </div>
       </div>
 
+      <div className="kpi-grid">
+        <div className="kpi">
+          <div className="kpi-header"><span>Today's birthdays</span></div>
+          <strong>{d.todayBirthdayCustomers ?? 0}</strong>
+          <small className="text-muted">WhatsApp sent {d.todayBirthdayMessagesSent ?? 0} · failed {d.todayBirthdayMessagesFailed ?? 0}</small>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Birthday offers redeemed</span></div>
+          <strong>{d.todayBirthdayOffersRedeemed ?? 0}</strong>
+          <small className="text-muted">Discount <CurrencyDisplay value={d.todayBirthdayDiscount ?? 0} /></small>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Monthly birthday redemptions</span></div>
+          <strong>{d.monthlyBirthdayOffersRedeemed ?? 0}</strong>
+          <small className="text-muted">Cost <CurrencyDisplay value={d.monthlyBirthdayDiscount ?? 0} /></small>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Birthday report</span></div>
+          <strong><Link to="/reports/birthdays" className="small">Open report</Link></strong>
+          <small className="text-muted">Customers, WhatsApp, redemptions</small>
+        </div>
+      </div>
+
       {/* Charts Section */}
       <div className="row g-3 mb-3">
         <div className="col-lg-8">

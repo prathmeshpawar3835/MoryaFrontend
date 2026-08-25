@@ -29,7 +29,10 @@ export const queryKeys = {
   customerWallet: (id: number) => ['customers', id, 'wallet'] as const,
   referrals: (q: unknown) => ['referrals', q] as const,
   referralValidate: (code: string, storeId?: number | null) => ['referrals', 'validate', code, storeId ?? 'any'] as const,
-  discounts: (storeId?: number | null, activeOnly?: boolean) => ['discounts', storeId ?? 'all', activeOnly ?? false] as const,
+  discounts: (storeId?: number | null, activeOnly?: boolean, category?: number) =>
+    ['discounts', storeId ?? 'all', activeOnly ?? false, category ?? 'store'] as const,
+  birthdayEligibility: (customerId: number, storeId?: number | null) =>
+    ['birthday', 'eligibility', customerId, storeId ?? 'any'] as const,
   suppliers: (q: unknown) => ['suppliers', q] as const,
   repairs: (q: unknown) => ['repairs', q] as const,
   repair: (id: number) => ['repairs', id] as const,

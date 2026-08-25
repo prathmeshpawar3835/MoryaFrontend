@@ -7,8 +7,7 @@ import { customerApi } from '../../api/customerApi'
 import { posApi } from '../../api/posApi'
 import { billApi } from '../../api/billApi'
 import { referralApi } from '../../api/referralApi'
-import { discountApi } from '../../api/opsApi'
-import { settingsApi } from '../../api/settingsApi'
+import { discountApi, birthdayApi } from '../../api/opsApi'
 import { queryKeys } from '../../api/queryKeys'
 import { useStore } from '../../context/StoreContext'
 import { useDebounce } from '../../hooks/useDebounce'
@@ -76,6 +75,7 @@ export function POSPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
   const [storeDiscountId, setStoreDiscountId] = useState<number | ''>('')
+  const [birthdayOfferId, setBirthdayOfferId] = useState<number | ''>('')
   const [payments, setPayments] = useState<Record<number, number>>({ [PaymentMode.Cash]: 0 })
   const [refs, setRefs] = useState<Record<number, string>>({})
   const [walletRedeem, setWalletRedeem] = useState(0)
@@ -125,9 +125,15 @@ export function POSPage() {
   })
 
   const discountsQ = useQuery({
-    queryKey: queryKeys.discounts(storeId, true),
-    queryFn: () => discountApi.list(storeId, true),
+    queryKey: queryKeys.discounts(storeId, true, 1),
+    queryFn: () => discountApi.list(storeId, true, 1),
     enabled: Boolean(storeId),
+  })
+
+  const eligibilityQ = useQuery({
+    queryKey: queryKeys.birthdayEligibility(customer?.id ?? 0, storeId),
+    queryFn: () => birthdayApi.eligibility(customer!.id, storeId),
+    enabled: Boolean(customer?.id && storeId),
   })
 
   const referralQ = useQuery({
@@ -136,7 +142,9 @@ export function POSPage() {
     enabled: referralCode.trim().length >= 4,
   })
 
-  const settingsQ = useQuery({ queryKey: queryKeys.settings, queryFn: settingsApi.get })
+  useEffect(() => {
+    setBirthdayOfferId('')
+  }, [customer?.id])
 
   const adjSearchQ = useQuery({
     queryKey: ['bills', 'pos-adj', adjSearch, storeId],
@@ -193,9 +201,12 @@ export function POSPage() {
       ? Math.round((eligible * referralRate) / 100 * 100) / 100
       : referralRate
     : 0
-  const birthdayPercent = settingsQ.data?.birthdayDiscountPercent ?? 0
-  const birthdayDiscountPreview =
-    customer?.isBirthday && birthdayPercent > 0 ? Math.round(((eligible * birthdayPercent) / 100) * 100) / 100 : 0
+  const selectedBirthdayOffer = eligibilityQ.data?.offers.find((o) => o.id === birthdayOfferId)
+  const birthdayDiscountPreview = selectedBirthdayOffer
+    ? selectedBirthdayOffer.discountKind === DiscountKind.Percentage
+      ? Math.round((eligible * selectedBirthdayOffer.value) / 100 * 100) / 100
+      : selectedBirthdayOffer.value
+    : 0
 
   const totals = useMemo(
     () =>
@@ -261,6 +272,7 @@ export function POSPage() {
     setNewCustomerDob('')
     setSalesPersonId('')
     setStoreDiscountId('')
+    setBirthdayOfferId('')
     setPayments({ [PaymentMode.Cash]: 0 })
     setRefs({})
     setWalletRedeem(0)
@@ -306,6 +318,7 @@ export function POSPage() {
         walletRedeemAmount: walletRedeem,
         salesPersonId: salesPersonId || undefined,
         storeDiscountId: storeDiscountId || undefined,
+        birthdayOfferId: birthdayOfferId || undefined,
         items: cart.map((l) => ({ productId: l.product.id, quantity: l.quantity, discountAmount: l.discountAmount })),
         adjustments: adjustments.map((a) => ({
           kind: a.kind,
@@ -862,8 +875,40 @@ export function POSPage() {
                   <span className={`badge ${customer.outstandingBalance > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'} border`}>
                     Due: {formatMoney(customer.outstandingBalance)}
                   </span>
-                  {customer.isBirthday ? <span className="badge bg-warning text-dark">Birthday offer</span> : null}
+                  {eligibilityQ.data?.isBirthdayToday ? <span className="badge bg-warning text-dark">Birthday today</span> : null}
                 </div>
+                {eligibilityQ.data?.isBirthdayToday ? (
+                  <div className="alert alert-warning py-2 px-3 mt-2 mb-0">
+                    <div className="fw-bold">🎂 Birthday Today</div>
+                    <div>Happy Birthday, {eligibilityQ.data.customerName}!</div>
+                    {eligibilityQ.data.alreadyRedeemed ? (
+                      <div className="fw-semibold mt-1">Birthday Offer Already Redeemed Today{eligibilityQ.data.redeemedInvoiceNumber ? ` (${eligibilityQ.data.redeemedInvoiceNumber})` : ''}</div>
+                    ) : eligibilityQ.data.offers.length ? (
+                      eligibilityQ.data.offers.map((offer) => (
+                        <div key={offer.id} className="mt-2">
+                          <div>
+                            Available Offer:{' '}
+                            <strong>
+                              {offer.name} — {offer.discountKind === DiscountKind.Percentage ? `${offer.value}% OFF` : `${formatMoney(offer.value)} OFF`}
+                            </strong>
+                          </div>
+                          <div className="small">Valid Today Only</div>
+                          {birthdayOfferId === offer.id ? (
+                            <button className="btn btn-sm btn-outline-secondary mt-1" type="button" onClick={() => setBirthdayOfferId('')}>
+                              Remove birthday offer
+                            </button>
+                          ) : (
+                            <button className="btn btn-sm btn-gold mt-1" type="button" onClick={() => setBirthdayOfferId(offer.id)}>
+                              Apply Birthday Offer
+                            </button>
+                          )}
+                        </div>
+                      ))
+                    ) : (
+                      <div className="small mt-1">{eligibilityQ.data.message}</div>
+                    )}
+                  </div>
+                ) : null}
               </div>
             ) : null}
           </div>
@@ -976,7 +1021,10 @@ export function POSPage() {
             ) : null}
             {birthdayDiscountPreview > 0 ? (
               <div>
-                <span>Birthday offer{birthdayPercent ? ` (${birthdayPercent}%)` : ''}</span>
+                <span>
+                  {selectedBirthdayOffer?.name || 'Birthday offer'}
+                  {selectedBirthdayOffer?.discountKind === DiscountKind.Percentage ? ` (${selectedBirthdayOffer.value}%)` : ''}
+                </span>
                 <span className="text-success">- {formatMoney(birthdayDiscountPreview)}</span>
               </div>
             ) : null}
@@ -1196,7 +1244,7 @@ export function POSPage() {
           <label className="form-label">Address</label>
           <input className="form-control" value={newCustomerAddress} onChange={(e) => setNewCustomerAddress(e.target.value)} />
           <label className="form-label">Date of birth (birthday offer)</label>
-          <input className="form-control" type="date" value={newCustomerDob} onChange={(e) => setNewCustomerDob(e.target.value)} />
+          <input className="form-control" type="date" max={new Date().toISOString().slice(0, 10)} value={newCustomerDob} onChange={(e) => setNewCustomerDob(e.target.value)} />
           <label className="form-label">Referral code (optional)</label>
           <input className="form-control" value={referralCode} onChange={(e) => setReferralCode(e.target.value.toUpperCase())} />
           <button

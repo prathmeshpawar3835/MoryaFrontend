@@ -124,6 +124,7 @@ export interface CreateBillRequest {
   walletRedeemAmount: number
   salesPersonId?: number | null
   storeDiscountId?: number | null
+  birthdayOfferId?: number | null
   items: CreateBillItemRequest[]
   payments: CreatePaymentRequest[]
   adjustments?: SaleAdjustmentRequest[]
@@ -191,6 +192,9 @@ export interface Bill {
   storeDiscountId?: number | null
   storeDiscountName?: string | null
   birthdayDiscount?: number
+  birthdayDiscountPercent?: number
+  birthdayOfferId?: number | null
+  birthdayOfferName?: string | null
   returnAdjustment?: number
   exchangeAdjustment?: number
   buybackAdjustment?: number
@@ -315,6 +319,7 @@ export interface Invoice {
   referralDiscountPercent?: number
   birthdayDiscount?: number
   birthdayDiscountPercent?: number
+  birthdayOfferName?: string | null
   storeDiscount?: number
   storeDiscountPercent?: number
   storeDiscountName?: string | null
@@ -463,6 +468,8 @@ export interface StoreDiscount {
   storeId: number
   storeName: string
   name: string
+  description?: string | null
+  offerCategory?: number
   discountKind: number
   value: number
   validFrom?: string | null
@@ -473,11 +480,36 @@ export interface StoreDiscount {
 export interface StoreDiscountRequest {
   storeId: number
   name: string
+  description?: string | null
+  offerCategory?: number
   discountKind: number
   value: number
   validFrom?: string | null
   validTo?: string | null
   isActive: boolean
+}
+
+export interface BirthdayOfferSummary {
+  id: number
+  name: string
+  description?: string | null
+  discountKind: number
+  value: number
+  storeId: number
+  storeName: string
+}
+
+export interface BirthdayEligibility {
+  customerId: number
+  customerName: string
+  mobileNumber: string
+  customerCode: string
+  dateOfBirth?: string | null
+  isBirthdayToday: boolean
+  alreadyRedeemed: boolean
+  redeemedInvoiceNumber?: string | null
+  message?: string | null
+  offers: BirthdayOfferSummary[]
 }
 
 export interface Supplier {
