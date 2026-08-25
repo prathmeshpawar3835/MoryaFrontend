@@ -88,6 +88,14 @@ export function DashboardPage() {
           <strong><CurrencyDisplay value={d.todayExchanges ?? 0} /></strong>
           <small className="text-muted">{d.todayExchangeCount ?? 0} notes · month <CurrencyDisplay value={d.monthlyExchanges ?? 0} /></small>
         </div>
+        <div className="kpi">
+          <div className="kpi-header">
+            <span>Today's Buyback</span>
+            <div className="kpi-icon"><i className="bi bi-bag-check" /></div>
+          </div>
+          <strong><CurrencyDisplay value={d.todayBuybacks ?? 0} /></strong>
+          <small className="text-muted">{d.todayBuybackCount ?? 0} notes · month <CurrencyDisplay value={d.monthlyBuybacks ?? 0} /></small>
+        </div>
       </div>
 
       <div className="kpi-grid">

@@ -159,6 +159,26 @@ export function SalesReportPage() {
             </div>
             <strong className="text-success"><CurrencyDisplay value={d.netSales} /></strong>
           </div>
+          <div className="kpi">
+            <div className="kpi-header"><span>Returns</span></div>
+            <strong><CurrencyDisplay value={d.returnAmount ?? 0} /></strong>
+          </div>
+          <div className="kpi">
+            <div className="kpi-header"><span>Exchanges</span></div>
+            <strong><CurrencyDisplay value={d.exchangeAmount ?? 0} /></strong>
+          </div>
+          <div className="kpi">
+            <div className="kpi-header"><span>Buybacks</span></div>
+            <strong><CurrencyDisplay value={d.buybackAmount ?? 0} /></strong>
+          </div>
+          <div className="kpi">
+            <div className="kpi-header"><span>Credit used</span></div>
+            <strong><CurrencyDisplay value={d.creditUsed ?? 0} /></strong>
+          </div>
+          <div className="kpi">
+            <div className="kpi-header"><span>Credit generated</span></div>
+            <strong><CurrencyDisplay value={d.creditGenerated ?? 0} /></strong>
+          </div>
         </div>
       ) : null}
 

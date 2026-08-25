@@ -40,6 +40,7 @@ export function CustomersPage() {
       address: '',
       referralCode: '',
       referringMobileNumber: '',
+      dateOfBirth: '',
     },
   })
 
@@ -52,6 +53,7 @@ export function CustomersPage() {
         address: v.address,
         referralCode: v.referralCode,
         referringMobileNumber: v.referringMobileNumber,
+        dateOfBirth: v.dateOfBirth || undefined,
       }),
     onSuccess: async () => {
       toast.success('Customer registered successfully')
@@ -207,6 +209,10 @@ export function CustomersPage() {
             />
           </FormField>
 
+          <FormField label="Date of birth (birthday offer)">
+            <input className="form-control" type="date" {...form.register('dateOfBirth')} />
+          </FormField>
+
           <div className="row g-2">
             <div className="col-6">
               <FormField
@@ -304,7 +310,7 @@ export function CustomerProfilePage() {
         </div>
         <div className="kpi">
           <div className="kpi-header">
-            <span>Wallet Balance</span>
+            <span>Available Credit Balance</span>
             <div className="kpi-icon text-success bg-success-subtle"><i className="bi bi-cash-coin" /></div>
           </div>
           <strong className="text-success">
@@ -355,6 +361,17 @@ export function CustomerProfilePage() {
               <tr>
                 <th className="text-muted">Address</th>
                 <td>{c.address || <span className="text-muted fst-italic">No address provided</span>}</td>
+              </tr>
+              <tr>
+                <th className="text-muted">Date of birth</th>
+                <td>
+                  {c.dateOfBirth || <span className="text-muted fst-italic">Not recorded</span>}
+                  {c.isBirthday ? <span className="badge bg-warning text-dark ms-2">Birthday today</span> : null}
+                </td>
+              </tr>
+              <tr>
+                <th className="text-muted">Available Credit Balance</th>
+                <td className="fw-bold text-success"><CurrencyDisplay value={wallet.data?.balance ?? c.walletBalance} /></td>
               </tr>
               <tr>
                 <th className="text-muted">Member Since</th>

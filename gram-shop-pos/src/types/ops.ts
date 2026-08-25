@@ -126,6 +126,15 @@ export interface CreateBillRequest {
   storeDiscountId?: number | null
   items: CreateBillItemRequest[]
   payments: CreatePaymentRequest[]
+  adjustments?: SaleAdjustmentRequest[]
+}
+
+export interface SaleAdjustmentRequest {
+  kind: ReturnKind
+  originalBillId: number
+  reason?: string
+  amount?: number | null
+  items: { originalBillItemId: number; quantity: number }[]
 }
 
 export interface BillItem {
@@ -143,6 +152,7 @@ export interface BillItem {
   returnedQuantity?: number
   exchangedQuantity?: number
   remainingQuantity?: number
+  boughtBackQuantity?: number
   fulfillmentStatus?: number
 }
 
@@ -180,9 +190,16 @@ export interface Bill {
   storeDiscountAmount?: number
   storeDiscountId?: number | null
   storeDiscountName?: string | null
+  birthdayDiscount?: number
+  returnAdjustment?: number
+  exchangeAdjustment?: number
+  buybackAdjustment?: number
+  creditGenerated?: number
+  payableAmount?: number
   notes?: string | null
   items: BillItem[]
   payments: Payment[]
+  adjustments?: ReturnRecord[]
 }
 
 export interface BillListQuery extends PagedQuery {
@@ -230,6 +247,8 @@ export interface ReturnRecord {
   exchangeBillId?: number | null
   salesPersonId?: number | null
   salesPersonName?: string | null
+  appliedToBillId?: number | null
+  appliedToBillNumber?: string | null
   items: ReturnItem[]
 }
 
@@ -260,6 +279,14 @@ export interface ExchangeResult {
   differencePayable: number
 }
 
+export interface CreateBuybackRequest {
+  originalBillId: number
+  reason?: string
+  amount?: number | null
+  salesPersonId?: number | null
+  items: { originalBillItemId: number; quantity: number }[]
+}
+
 export interface Invoice {
   shopName: string
   logoPath?: string | null
@@ -276,16 +303,37 @@ export interface Invoice {
   customerName?: string | null
   customerMobile?: string | null
   customerAddress?: string | null
+  customerCode?: string | null
+  salesPersonName?: string | null
   products: BillItem[]
   subtotal: number
   discount: number
+  referralDiscount?: number
+  birthdayDiscount?: number
+  storeDiscount?: number
   tax: number
   total: number
+  returnAdjustment?: number
+  exchangeAdjustment?: number
+  buybackAdjustment?: number
+  walletRedeemed?: number
+  creditGenerated?: number
+  payableAmount?: number
   payments: Payment[]
+  adjustments?: ReturnRecord[]
   amountPaid: number
   amountDue: number
   footer?: string | null
   returnPolicy?: string | null
+}
+
+export interface WhatsAppShare {
+  sent: boolean
+  message: string
+  shareUrl: string
+  phone?: string | null
+  error?: string | null
+  invoiceNumber: string
 }
 
 export interface Customer {
@@ -295,6 +343,8 @@ export interface Customer {
   name: string
   mobileNumber: string
   address?: string | null
+  dateOfBirth?: string | null
+  isBirthday?: boolean
   referralCode: string
   customerCode?: string
   referredByCustomerId?: number | null
@@ -310,6 +360,7 @@ export interface CreateCustomerRequest {
   name: string
   mobileNumber: string
   address?: string
+  dateOfBirth?: string
   referralCode?: string
   referringMobileNumber?: string
 }
@@ -318,6 +369,7 @@ export interface UpdateCustomerRequest {
   name: string
   mobileNumber: string
   address?: string
+  dateOfBirth?: string | null
   isActive: boolean
 }
 

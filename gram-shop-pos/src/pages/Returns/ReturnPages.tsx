@@ -36,6 +36,9 @@ export function ReturnsListPage() {
             <Link className="btn btn-outline-secondary" to="/returns/exchange">
               <i className="bi bi-arrow-left-right me-1" /> New Exchange
             </Link>
+            <Link className="btn btn-outline-secondary" to="/returns/buyback">
+              <i className="bi bi-bag-check me-1" /> New Buyback
+            </Link>
           </div>
         }
       />
@@ -605,6 +608,169 @@ export function ExchangePage() {
           </button>
         </div>
       </div>
+    </>
+  )
+}
+
+export function BuybackPage() {
+  const [params] = useSearchParams()
+  const navigate = useNavigate()
+  const { selectedStoreId } = useStore()
+  const [billSearch, setBillSearch] = useState('')
+  const [billId, setBillId] = useState(Number(params.get('billId') || 0) || 0)
+  const [reason, setReason] = useState('')
+  const [qty, setQty] = useState<Record<number, number>>({})
+  const [amount, setAmount] = useState<number | ''>('')
+  const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
+
+  const searchQ = useQuery({
+    queryKey: ['bills', 'lookup-bb', billSearch, selectedStoreId],
+    queryFn: () => billApi.search({ search: billSearch, storeId: selectedStoreId, pageSize: 8, pageNumber: 1 }),
+    enabled: billSearch.trim().length >= 3,
+  })
+  const bill = useQuery({
+    queryKey: queryKeys.bill(billId),
+    queryFn: () => billApi.get(billId),
+    enabled: billId > 0,
+  })
+  const salesPersonsQ = useQuery({
+    queryKey: queryKeys.salesPersons(selectedStoreId),
+    queryFn: () => posApi.salesPersons(selectedStoreId!),
+    enabled: Boolean(selectedStoreId),
+  })
+
+  const totalQty = Object.values(qty).reduce((s, q) => s + (q || 0), 0)
+
+  const mut = useMutation({
+    mutationFn: () =>
+      returnApi.buyback({
+        originalBillId: billId,
+        reason,
+        amount: amount === '' ? undefined : Number(amount),
+        salesPersonId: salesPersonId || undefined,
+        items: Object.entries(qty)
+          .filter(([, q]) => q > 0)
+          .map(([id, q]) => ({ originalBillItemId: Number(id), quantity: q })),
+      }),
+    onSuccess: (r) => {
+      toast.success(`Buyback ${r.returnNumber} generated successfully`)
+      navigate('/returns')
+    },
+    onError: (err: any) => {
+      toast.error(err?.response?.data?.message || 'Failed to generate buyback')
+    },
+  })
+
+  return (
+    <>
+      <PageHeader
+        title="Product Buyback"
+        subtitle="Purchase a previously sold item back from the customer as a standalone transaction"
+        actions={
+          <Link to="/returns" className="btn btn-outline-secondary">
+            <i className="bi bi-arrow-left me-1" /> Back to Returns
+          </Link>
+        }
+      />
+
+      <div className="card-panel">
+        <div className="form-section-title">
+          <i className="bi bi-receipt text-gold" /> Original Bill Lookup
+        </div>
+        <div className="row g-3 mb-3">
+          <div className="col-md-6">
+            <FormField label="Invoice number" required>
+              <input className="form-control" placeholder="Search original invoice number" value={billSearch} onChange={(e) => setBillSearch(e.target.value)} />
+            </FormField>
+            {searchQ.data?.items.length ? (
+              <div className="list-group shadow-sm mt-1">
+                {searchQ.data.items.map((b: Bill) => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    className="list-group-item list-group-item-action py-2"
+                    onClick={() => {
+                      setBillId(b.id)
+                      setBillSearch(b.billNumber)
+                      setQty({})
+                    }}
+                  >
+                    <strong>{b.billNumber}</strong> · {b.customerName || 'Walk-in'}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </div>
+          <div className="col-md-6">
+            <FormField label="Buyback reason" required>
+              <input className="form-control" value={reason} onChange={(e) => setReason(e.target.value)} required />
+            </FormField>
+          </div>
+        </div>
+      </div>
+
+      {bill.data ? (
+        <div className="card-panel">
+          <DataTable columns={['Purchased Product Item', 'Sold Qty', 'Status', 'Buyback Quantity']}>
+            {bill.data.items.map((i) => {
+              const remaining = i.remainingQuantity ?? i.quantity
+              const locked = remaining <= 0
+              return (
+                <tr key={i.id} className={locked ? 'table-secondary' : undefined}>
+                  <td>
+                    <strong className="text-navy-900">{i.productName}</strong>
+                    <div className="small text-muted">{i.productCode}</div>
+                  </td>
+                  <td>{i.quantity}</td>
+                  <td>
+                    <span className="badge bg-light text-dark border">{ITEM_STATUS_LABELS[i.fulfillmentStatus ?? 1]}</span>
+                  </td>
+                  <td style={{ width: '180px' }}>
+                    {locked ? (
+                      <span className="text-muted small">Not available</span>
+                    ) : (
+                      <input
+                        className="form-control form-control-sm"
+                        type="number"
+                        min={0}
+                        max={remaining}
+                        value={qty[i.id] ?? 0}
+                        onChange={(e) => setQty((s) => ({ ...s, [i.id]: Number(e.target.value) }))}
+                      />
+                    )}
+                  </td>
+                </tr>
+              )
+            })}
+          </DataTable>
+
+          <div className="row g-3 mt-2">
+            <div className="col-md-4">
+              <FormField label="Buyback value (optional override)">
+                <input className="form-control" type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))} />
+              </FormField>
+            </div>
+            <div className="col-md-4">
+              <FormField label="Sales person">
+                <select className="form-select" value={salesPersonId} onChange={(e) => setSalesPersonId(e.target.value ? Number(e.target.value) : '')}>
+                  <option value="">Current user</option>
+                  {salesPersonsQ.data?.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.fullName}
+                    </option>
+                  ))}
+                </select>
+              </FormField>
+            </div>
+          </div>
+
+          <div className="d-flex justify-content-end gap-2 pt-3 mt-3 border-top">
+            <button className="btn btn-gold px-4 fw-bold" type="button" disabled={!bill.data || totalQty === 0 || !reason || mut.isPending} onClick={() => mut.mutate()}>
+              {mut.isPending ? 'Processing Buyback…' : 'Confirm Buyback'}
+            </button>
+          </div>
+        </div>
+      ) : null}
     </>
   )
 }

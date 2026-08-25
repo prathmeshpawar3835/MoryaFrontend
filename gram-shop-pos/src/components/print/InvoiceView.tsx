@@ -1,11 +1,24 @@
 import type { Invoice } from '../../types'
 import { formatDateTime, formatMoney } from '../../utils/format'
-import { PAYMENT_LABELS } from '../../constants/labels'
+import { PAYMENT_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
+
+function Line({ label, value, danger }: { label: string; value: number; danger?: boolean }) {
+  if (!value) return null
+  return (
+    <div className="d-flex justify-content-between mb-1 small text-muted">
+      <span>{label}</span>
+      <span className={danger ? 'text-danger' : undefined}>
+        {danger ? '- ' : ''}
+        {formatMoney(value)}
+      </span>
+    </div>
+  )
+}
 
 export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: boolean }) {
+  const payable = invoice.payableAmount ?? invoice.total
   return (
     <article className={`invoice-paper ${thermal ? 'thermal' : ''}`}>
-      {/* Header */}
       <header className="invoice-head">
         <div>
           <div className="d-flex align-items-center gap-2 mb-1">
@@ -29,14 +42,15 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
           <div className="text-muted small mb-1">{formatDateTime(invoice.invoiceDate)}</div>
           <div className="fw-semibold text-dark">{invoice.storeName}</div>
           <div className="text-muted small">{invoice.storeAddress}</div>
+          {invoice.salesPersonName ? <div className="text-muted small">Sales Person: {invoice.salesPersonName}</div> : null}
         </div>
       </header>
 
-      {/* Customer Info Bar */}
       <div className="p-3 bg-light rounded-3 mb-3 d-flex justify-content-between align-items-center">
         <div>
           <span className="text-muted small d-block">Billed To Customer</span>
           <strong className="text-navy-900 fs-6">{invoice.customerName || 'Walk-in Customer'}</strong>
+          {invoice.customerCode ? <div className="small font-monospace">Customer Code: {invoice.customerCode}</div> : null}
           {invoice.customerAddress ? <div className="small text-muted">{invoice.customerAddress}</div> : null}
         </div>
         {invoice.customerMobile ? (
@@ -47,7 +61,6 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
         ) : null}
       </div>
 
-      {/* Items Table */}
       <div className="table-responsive mb-3">
         <table className="table app-table mb-0 align-middle">
           <thead>
@@ -78,7 +91,22 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
         </table>
       </div>
 
-      {/* Totals & Payments Section */}
+      {invoice.adjustments?.length ? (
+        <div className="p-3 bg-light rounded-3 mb-3">
+          <div className="small fw-bold text-muted mb-2 text-uppercase">Exchange / Return / Buyback</div>
+          {invoice.adjustments.map((a) => (
+            <div key={a.id} className="d-flex justify-content-between small mb-1">
+              <span>
+                {RETURN_KIND_LABELS[a.returnKind] ?? a.returnKind} {a.returnNumber}
+                {a.items[0] ? ` · ${a.items.map((i) => i.productName).join(', ')}` : ''}
+                {a.originalBillNumber ? ` (orig. ${a.originalBillNumber})` : ''}
+              </span>
+              <strong className="text-danger">- {formatMoney(a.returnAmount)}</strong>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
       <div className="row g-3">
         <div className="col-sm-6">
           <div className="p-3 bg-light rounded-3 h-100">
@@ -89,6 +117,12 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
                 <strong className="text-dark">{formatMoney(p.amount)}</strong>
               </div>
             ))}
+            {invoice.walletRedeemed ? (
+              <div className="d-flex justify-content-between align-items-center mb-1">
+                <span>Customer Credit Used</span>
+                <strong className="text-dark">{formatMoney(invoice.walletRedeemed)}</strong>
+              </div>
+            ) : null}
           </div>
         </div>
 
@@ -98,17 +132,31 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
               <span>Items Subtotal</span>
               <span>{formatMoney(invoice.subtotal)}</span>
             </div>
-            <div className="d-flex justify-content-between mb-1 small text-muted">
-              <span>Discount</span>
-              <span className="text-danger">- {formatMoney(invoice.discount)}</span>
-            </div>
+            <Line label="Item / Bill Discount" value={invoice.discount} danger />
+            <Line label="Referral Discount" value={invoice.referralDiscount ?? 0} danger />
+            <Line label="Birthday Offer" value={invoice.birthdayDiscount ?? 0} danger />
+            <Line label="Store Discount" value={invoice.storeDiscount ?? 0} danger />
             <div className="d-flex justify-content-between mb-2 small text-muted">
               <span>Applicable GST Tax</span>
               <span>+ {formatMoney(invoice.tax)}</span>
             </div>
             <div className="d-flex justify-content-between pt-2 border-top mb-2">
-              <strong className="fs-5 text-navy-900">Total Invoice Value</strong>
-              <strong className="fs-5 text-navy-900">{formatMoney(invoice.total)}</strong>
+              <strong>Total Invoice Value</strong>
+              <strong>{formatMoney(invoice.total)}</strong>
+            </div>
+            <Line label="Return Adjustment" value={invoice.returnAdjustment ?? 0} danger />
+            <Line label="Exchange Adjustment" value={invoice.exchangeAdjustment ?? 0} danger />
+            <Line label="Buyback Adjustment" value={invoice.buybackAdjustment ?? 0} danger />
+            <Line label="Customer Credit Used" value={invoice.walletRedeemed ?? 0} danger />
+            {invoice.creditGenerated ? (
+              <div className="d-flex justify-content-between mb-1 small text-success">
+                <span>Credit Generated</span>
+                <span>{formatMoney(invoice.creditGenerated)}</span>
+              </div>
+            ) : null}
+            <div className="d-flex justify-content-between pt-2 border-top mb-2">
+              <strong className="fs-5 text-navy-900">Final Payable</strong>
+              <strong className="fs-5 text-navy-900">{formatMoney(payable)}</strong>
             </div>
             <div className="d-flex justify-content-between small text-success">
               <span>Total Paid</span>
@@ -124,7 +172,6 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
         </div>
       </div>
 
-      {/* Footer Notes & Policy */}
       <footer className="mt-4 pt-3 border-top text-center text-muted small">
         <p className="mb-1">{invoice.footer || 'Thank you for your valued patronage!'}</p>
         <p className="mb-0 fst-italic">{invoice.returnPolicy}</p>

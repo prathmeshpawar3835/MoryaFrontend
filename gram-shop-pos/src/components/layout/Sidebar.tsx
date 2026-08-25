@@ -28,6 +28,7 @@ const groups: Group[] = [
       { to: '/pos/held', label: 'Held / Parked Bills', icon: 'bi-pause-circle', feature: 'pos' },
       { to: '/bills', label: 'Bills History', icon: 'bi-receipt-cutoff', feature: 'bills' },
       { to: '/returns', label: 'Returns & Exchange', icon: 'bi-arrow-repeat', feature: 'returns' },
+      { to: '/returns/buyback', label: 'Buyback', icon: 'bi-bag-check', feature: 'returns' },
       { to: '/repairs', label: 'Repair / Polish', icon: 'bi-tools', feature: 'repairs' },
     ],
   },

@@ -44,7 +44,7 @@ export type BillStatus = number
 export const BillType = { Sale: 1, Exchange: 2 } as const
 export type BillType = number
 
-export const ReturnKind = { Return: 1, Exchange: 2 } as const
+export const ReturnKind = { Return: 1, Exchange: 2, Buyback: 3 } as const
 export type ReturnKind = number
 
 export const StockMovementType = {
@@ -84,6 +84,7 @@ export const LedgerTransactionType = {
   ReferralCredit: 7,
   ReferralReversal: 8,
   ExchangeAdjustment: 9,
+  Buyback: 10,
 } as const
 export type LedgerTransactionType = number
 
@@ -108,6 +109,8 @@ export const BillItemFulfillmentStatus = {
   Returned: 3,
   PartiallyExchanged: 4,
   Exchanged: 5,
+  PartiallyBoughtBack: 6,
+  BoughtBack: 7,
 } as const
 export type BillItemFulfillmentStatus = number
 

@@ -61,6 +61,7 @@ export const customerSchema = z.object({
   storeId: z.number().min(1, 'Store is required'),
   referralCode: z.string().optional(),
   referringMobileNumber: z.string().optional(),
+  dateOfBirth: z.string().optional(),
 })
 
 export const storeSchema = z.object({

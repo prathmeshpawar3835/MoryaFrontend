@@ -30,11 +30,28 @@ export function BillDetailPage() {
             <button type="button" className="btn btn-outline-secondary" onClick={() => void billApi.invoicePdf(billId)}>
               <i className="bi bi-file-earmark-pdf me-1" /> Download PDF
             </button>
+            <button type="button" className="btn btn-success" onClick={async () => {
+              try {
+                const share = await billApi.sendWhatsApp(billId)
+                if (!share.shareUrl) {
+                  toast.error(share.error || 'Invoice generated successfully, but WhatsApp sending failed.')
+                  return
+                }
+                window.open(share.shareUrl, '_blank', 'noopener,noreferrer')
+              } catch {
+                toast.error('Invoice generated successfully, but WhatsApp sending failed.')
+              }
+            }}>
+              <i className="bi bi-whatsapp me-1" /> Send Invoice on WhatsApp
+            </button>
             <Link className="btn btn-outline-secondary" to={`/returns/new?billId=${billId}`}>
               <i className="bi bi-arrow-return-left me-1" /> Return
             </Link>
             <Link className="btn btn-outline-secondary" to={`/returns/exchange?billId=${billId}`}>
               <i className="bi bi-arrow-left-right me-1" /> Exchange
+            </Link>
+            <Link className="btn btn-outline-secondary" to={`/returns/buyback?billId=${billId}`}>
+              <i className="bi bi-bag-check me-1" /> Buyback
             </Link>
             {bill.data && bill.data.status !== 4 ? (
               <ConfirmDialog

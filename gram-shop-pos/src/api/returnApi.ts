@@ -1,6 +1,6 @@
 import { axiosClient, downloadResponse } from './axiosClient'
 import { cleanParams } from '../utils/query'
-import type { CreateExchangeRequest, CreateReturnRequest, ExchangeResult, PagedQuery, PagedResponse, ReturnRecord } from '../types'
+import type { CreateBuybackRequest, CreateExchangeRequest, CreateReturnRequest, ExchangeResult, PagedQuery, PagedResponse, ReturnRecord } from '../types'
 
 export const returnApi = {
   create: async (body: CreateReturnRequest) => (await axiosClient.post<ReturnRecord>('/returns', body)).data,
@@ -12,4 +12,5 @@ export const returnApi = {
     await downloadResponse(res, `return-${id}.pdf`)
   },
   exchange: async (body: CreateExchangeRequest) => (await axiosClient.post<ExchangeResult>('/exchanges', body)).data,
+  buyback: async (body: CreateBuybackRequest) => (await axiosClient.post<ReturnRecord>('/buybacks', body)).data,
 }

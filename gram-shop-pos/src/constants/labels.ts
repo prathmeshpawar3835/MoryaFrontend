@@ -47,19 +47,23 @@ export const LEDGER_TYPE_LABELS: Record<number, string> = {
   7: 'Referral credit',
   8: 'Referral reversal',
   9: 'Exchange adjustment',
+  10: 'Buyback',
 }
 
 export const RETURN_KIND_LABELS: Record<number, string> = {
   1: 'Return',
   2: 'Exchange',
+  3: 'Buyback',
 }
 
 export const ITEM_STATUS_LABELS: Record<number, string> = {
-  1: 'Sold',
+  1: 'Available',
   2: 'Partially returned',
-  3: 'Returned',
+  3: 'Already Returned',
   4: 'Partially exchanged',
-  5: 'Exchanged',
+  5: 'Already Exchanged',
+  6: 'Partially bought back',
+  7: 'Already Bought Back',
 }
 
 export const REPAIR_STATUS_LABELS: Record<number, string> = {

@@ -589,6 +589,9 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
             <FormField label={data.rewardType === 2 ? 'Referring customer benefit (%)' : 'Referrer member reward (₹)'} hint="Credited to the referrer ledger. Default 5% when type is percentage.">
               <input className="form-control" type="number" min={0} step="any" value={data.referrerReward} onChange={(e) => set('referrerReward', Number(e.target.value))} />
             </FormField>
+            <FormField label="Birthday offer discount (%)" hint="Applied automatically on the customer's birthday when date of birth is stored. 0 disables the offer.">
+              <input className="form-control" type="number" min={0} max={100} step="any" value={data.birthdayDiscountPercent ?? 0} onChange={(e) => set('birthdayDiscountPercent', Number(e.target.value))} />
+            </FormField>
             <FormField label="Reward Calculation Type">
               <select className="form-select" value={data.rewardType} onChange={(e) => set('rewardType', Number(e.target.value))}>
                 <option value={1}>Fixed Rupee Amount (₹)</option>

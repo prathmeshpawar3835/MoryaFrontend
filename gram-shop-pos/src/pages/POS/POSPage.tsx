@@ -8,14 +8,16 @@ import { posApi } from '../../api/posApi'
 import { billApi } from '../../api/billApi'
 import { referralApi } from '../../api/referralApi'
 import { discountApi } from '../../api/opsApi'
+import { settingsApi } from '../../api/settingsApi'
 import { queryKeys } from '../../api/queryKeys'
 import { useStore } from '../../context/StoreContext'
 import { useDebounce } from '../../hooks/useDebounce'
 import { useHotkeys } from '../../hooks/useHotkeys'
 import { calculateBill } from '../../utils/billCalc'
 import { formatMoney } from '../../utils/format'
-import { DiscountKind, PaymentMode, RewardType } from '../../types'
+import { DiscountKind, PaymentMode, ReturnKind, RewardType } from '../../types'
 import type { Bill, Customer, Product, StoreDiscount } from '../../types'
+import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
 import { Modal } from '../../components/common/Modal'
 import { InvoiceView } from '../../components/print/InvoiceView'
 import { StoreSelector } from '../../components/common/StoreSelector'
@@ -24,6 +26,17 @@ interface CartLine {
   product: Product
   quantity: number
   discountAmount: number
+}
+
+interface PendingAdjustment {
+  key: string
+  kind: number
+  originalBillId: number
+  originalBillNumber: string
+  reason: string
+  amount?: number
+  items: { originalBillItemId: number; productName: string; quantity: number; lineValue: number }[]
+  estimatedValue: number
 }
 
 const PAY_MODES = [
@@ -52,6 +65,14 @@ export function POSPage() {
   const [referralCode, setReferralCode] = useState('')
   const [newCustomerName, setNewCustomerName] = useState('')
   const [newCustomerAddress, setNewCustomerAddress] = useState('')
+  const [newCustomerDob, setNewCustomerDob] = useState('')
+  const [adjustments, setAdjustments] = useState<PendingAdjustment[]>([])
+  const [adjSearch, setAdjSearch] = useState('')
+  const [adjBillId, setAdjBillId] = useState(0)
+  const [adjKind, setAdjKind] = useState<number>(ReturnKind.Return)
+  const [adjQty, setAdjQty] = useState<Record<number, number>>({})
+  const [adjReason, setAdjReason] = useState('')
+  const [adjAmount, setAdjAmount] = useState<number | ''>('')
   const [createOpen, setCreateOpen] = useState(false)
   const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
   const [storeDiscountId, setStoreDiscountId] = useState<number | ''>('')
@@ -115,6 +136,19 @@ export function POSPage() {
     enabled: referralCode.trim().length >= 4,
   })
 
+  const settingsQ = useQuery({ queryKey: queryKeys.settings, queryFn: settingsApi.get })
+
+  const adjSearchQ = useQuery({
+    queryKey: ['bills', 'pos-adj', adjSearch, storeId],
+    queryFn: () => billApi.search({ search: adjSearch, storeId, pageSize: 8, pageNumber: 1 }),
+    enabled: adjSearch.trim().length >= 3 && Boolean(customer),
+  })
+  const adjBillQ = useQuery({
+    queryKey: queryKeys.bill(adjBillId),
+    queryFn: () => billApi.get(adjBillId),
+    enabled: adjBillId > 0,
+  })
+
   useEffect(() => {
     if (byMobileQ.data) {
       setCustomer(byMobileQ.data)
@@ -158,6 +192,9 @@ export function POSPage() {
       ? Math.round((eligible * referralQ.data!.newCustomerDiscountRate) / 100 * 100) / 100
       : referralQ.data!.newCustomerDiscountRate
     : 0
+  const birthdayPercent = settingsQ.data?.birthdayDiscountPercent ?? 0
+  const birthdayDiscountPreview =
+    customer?.isBirthday && birthdayPercent > 0 ? Math.round(((eligible * birthdayPercent) / 100) * 100) / 100 : 0
 
   const totals = useMemo(
     () =>
@@ -168,17 +205,25 @@ export function POSPage() {
           discountAmount: l.discountAmount,
           taxPercent: l.product.taxPercent,
         })),
-        billDiscount + storeDiscountAmount + referralDiscountPreview,
+        billDiscount + storeDiscountAmount + referralDiscountPreview + birthdayDiscountPreview,
       ),
-    [cart, billDiscount, storeDiscountAmount, referralDiscountPreview],
+    [cart, billDiscount, storeDiscountAmount, referralDiscountPreview, birthdayDiscountPreview],
   )
+
+  const adjustmentTotal = adjustments.reduce((s, a) => s + a.estimatedValue, 0)
+  const payableBeforeWallet = Math.max(0, Math.round((totals.grandTotal - adjustmentTotal) * 100) / 100)
+  const creditGeneratedPreview = Math.max(0, Math.round((adjustmentTotal - totals.grandTotal) * 100) / 100)
+  const availableCredit = walletQ.data?.balance ?? customer?.walletBalance ?? 0
+  const creditUsedPreview = Math.min(walletRedeem, payableBeforeWallet, availableCredit)
+  const payable = Math.max(0, Math.round((payableBeforeWallet - creditUsedPreview) * 100) / 100)
+  const remainingCreditPreview = Math.round((availableCredit - creditUsedPreview + creditGeneratedPreview) * 100) / 100
 
   const paidNonCredit = Object.entries(payments)
     .filter(([mode]) => Number(mode) !== PaymentMode.Credit)
     .reduce((s, [, amt]) => s + Number(amt || 0), 0)
   const creditAmt = Number(payments[PaymentMode.Credit] || 0)
-  const paidTotal = paidNonCredit + walletRedeem
-  const remaining = Math.round((totals.grandTotal - creditAmt - paidTotal) * 100) / 100
+  const paidTotal = paidNonCredit + creditUsedPreview
+  const remaining = Math.round((payable - creditAmt - paidNonCredit) * 100) / 100
 
   const addProduct = (product: Product) => {
     setCart((prev) => {
@@ -212,11 +257,18 @@ export function POSPage() {
     setReferralCode('')
     setNewCustomerName('')
     setNewCustomerAddress('')
+    setNewCustomerDob('')
     setSalesPersonId('')
     setStoreDiscountId('')
     setPayments({ [PaymentMode.Cash]: 0 })
     setRefs({})
     setWalletRedeem(0)
+    setAdjustments([])
+    setAdjSearch('')
+    setAdjBillId(0)
+    setAdjQty({})
+    setAdjReason('')
+    setAdjAmount('')
     setHeldBillId(null)
     setCompleted(null)
   }
@@ -254,6 +306,13 @@ export function POSPage() {
         salesPersonId: salesPersonId || undefined,
         storeDiscountId: storeDiscountId || undefined,
         items: cart.map((l) => ({ productId: l.product.id, quantity: l.quantity, discountAmount: l.discountAmount })),
+        adjustments: adjustments.map((a) => ({
+          kind: a.kind,
+          originalBillId: a.originalBillId,
+          reason: a.reason || undefined,
+          amount: a.kind === ReturnKind.Buyback ? a.amount : undefined,
+          items: a.items.map((i) => ({ originalBillItemId: i.originalBillItemId, quantity: i.quantity })),
+        })),
         payments: Object.entries(payments)
           .filter(([, amt]) => Number(amt) > 0)
           .map(([mode, amt]) => ({
@@ -267,6 +326,7 @@ export function POSPage() {
       setCompleted(bill)
       setPayOpen(false)
       await qc.invalidateQueries({ queryKey: queryKeys.dashboard(storeId) })
+      if (bill.customerId) await qc.invalidateQueries({ queryKey: queryKeys.customerWallet(bill.customerId) })
     },
     onError: (err: any) => {
       toast.error(err?.response?.data?.message || 'Failed to complete bill')
@@ -280,6 +340,7 @@ export function POSPage() {
         name: newCustomerName.trim(),
         mobileNumber: mobileExact || customerQuery.trim(),
         address: newCustomerAddress || undefined,
+        dateOfBirth: newCustomerDob || undefined,
         referralCode: referralCode || undefined,
       }),
     onSuccess: (created) => {
@@ -520,6 +581,191 @@ export function POSPage() {
               </tbody>
             </table>
           </div>
+
+          <div className="card border-0 shadow-sm mt-3" style={{ borderRadius: '12px' }}>
+            <div className="card-header bg-white d-flex justify-content-between align-items-center py-2">
+              <strong>Exchange / Return / Buyback</strong>
+              <span className="small text-muted">Optional — same sale transaction</span>
+            </div>
+            <div className="card-body py-3">
+              {!customer ? (
+                <div className="text-muted small">Select a customer first to look up an original invoice.</div>
+              ) : (
+                <>
+                  <div className="row g-2 align-items-end">
+                    <div className="col-md-5">
+                      <label className="form-label small mb-1">Original invoice number</label>
+                      <input
+                        className="form-control form-control-sm"
+                        placeholder="Search invoice number"
+                        value={adjSearch}
+                        onChange={(e) => setAdjSearch(e.target.value)}
+                      />
+                      {adjSearchQ.data?.items.length ? (
+                        <div className="list-group shadow-sm mt-1">
+                          {adjSearchQ.data.items.map((b) => (
+                            <button
+                              key={b.id}
+                              type="button"
+                              className="list-group-item list-group-item-action py-1 small"
+                              onClick={() => {
+                                setAdjBillId(b.id)
+                                setAdjSearch(b.billNumber)
+                                setAdjQty({})
+                              }}
+                            >
+                              <strong>{b.billNumber}</strong> · {b.customerName || 'Walk-in'} · {formatMoney(b.grandTotal)}
+                            </button>
+                          ))}
+                        </div>
+                      ) : null}
+                    </div>
+                    <div className="col-md-3">
+                      <label className="form-label small mb-1">Transaction type</label>
+                      <select className="form-select form-select-sm" value={adjKind} onChange={(e) => setAdjKind(Number(e.target.value))}>
+                        <option value={ReturnKind.Return}>Return</option>
+                        <option value={ReturnKind.Exchange}>Exchange</option>
+                        <option value={ReturnKind.Buyback}>Buyback</option>
+                      </select>
+                    </div>
+                    <div className="col-md-4">
+                      <label className="form-label small mb-1">Reason</label>
+                      <input className="form-control form-control-sm" value={adjReason} onChange={(e) => setAdjReason(e.target.value)} />
+                    </div>
+                  </div>
+                  {adjKind === ReturnKind.Exchange ? (
+                    <div className="alert alert-info py-2 px-3 mt-2 mb-0 small">
+                      Add replacement products to the current cart. The original item value will reduce this bill, and a separate Exchange Receipt will still be generated.
+                    </div>
+                  ) : null}
+                  {adjBillQ.data ? (
+                    adjBillQ.data.customerId && adjBillQ.data.customerId !== customer.id ? (
+                      <div className="alert alert-danger py-2 mt-2 mb-0 small">This invoice belongs to a different customer.</div>
+                    ) : (
+                      <div className="table-responsive mt-2">
+                        <table className="table table-sm mb-0">
+                          <thead>
+                            <tr>
+                              <th>Product</th>
+                              <th>Status</th>
+                              <th>Qty remaining</th>
+                              <th>Process qty</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {adjBillQ.data.items.map((i) => {
+                              const remainingQty = i.remainingQuantity ?? i.quantity
+                              const locked = remainingQty <= 0
+                              return (
+                                <tr key={i.id} className={locked ? 'table-secondary' : undefined}>
+                                  <td>
+                                    <div className="fw-semibold">{i.productName}</div>
+                                    <div className="small text-muted">{i.productCode}</div>
+                                  </td>
+                                  <td>
+                                    <span className="badge bg-light text-dark border">{ITEM_STATUS_LABELS[i.fulfillmentStatus ?? 1]}</span>
+                                  </td>
+                                  <td>{remainingQty}</td>
+                                  <td style={{ width: '110px' }}>
+                                    {locked ? (
+                                      <span className="text-muted small">Not available</span>
+                                    ) : (
+                                      <input
+                                        className="form-control form-control-sm"
+                                        type="number"
+                                        min={0}
+                                        max={remainingQty}
+                                        value={adjQty[i.id] ?? 0}
+                                        onChange={(e) => setAdjQty((s) => ({ ...s, [i.id]: Number(e.target.value) }))}
+                                      />
+                                    )}
+                                  </td>
+                                </tr>
+                              )
+                            })}
+                          </tbody>
+                        </table>
+                        {adjKind === ReturnKind.Buyback ? (
+                          <div className="mt-2" style={{ maxWidth: '220px' }}>
+                            <label className="form-label small mb-1">Buyback value (optional)</label>
+                            <input
+                              className="form-control form-control-sm"
+                              type="number"
+                              min={0}
+                              value={adjAmount}
+                              onChange={(e) => setAdjAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                            />
+                          </div>
+                        ) : null}
+                        <button
+                          type="button"
+                          className="btn btn-sm btn-outline-secondary mt-2"
+                          onClick={() => {
+                            const bill = adjBillQ.data
+                            if (!bill) return
+                            const selected = bill.items
+                              .filter((i) => (adjQty[i.id] || 0) > 0)
+                              .map((i) => {
+                                const qty = adjQty[i.id]
+                                return {
+                                  originalBillItemId: i.id,
+                                  productName: i.productName,
+                                  quantity: qty,
+                                  lineValue: Math.round((i.total * qty) / i.quantity * 100) / 100,
+                                }
+                              })
+                            if (!selected.length) {
+                              toast.error('Select at least one available product')
+                              return
+                            }
+                            const estimated =
+                              adjKind === ReturnKind.Buyback && adjAmount !== ''
+                                ? Number(adjAmount)
+                                : selected.reduce((s, i) => s + i.lineValue, 0)
+                            setAdjustments((prev) => [
+                              ...prev,
+                              {
+                                key: `${bill.id}-${adjKind}-${Date.now()}`,
+                                kind: adjKind,
+                                originalBillId: bill.id,
+                                originalBillNumber: bill.billNumber,
+                                reason: adjReason,
+                                amount: adjKind === ReturnKind.Buyback && adjAmount !== '' ? Number(adjAmount) : undefined,
+                                items: selected,
+                                estimatedValue: estimated,
+                              },
+                            ])
+                            setAdjQty({})
+                            setAdjAmount('')
+                            toast.success(`${RETURN_KIND_LABELS[adjKind]} added to this sale`)
+                          }}
+                        >
+                          Add to current sale
+                        </button>
+                      </div>
+                    )
+                  ) : null}
+                  {adjustments.length ? (
+                    <ul className="list-group mt-2">
+                      {adjustments.map((a) => (
+                        <li key={a.key} className="list-group-item d-flex justify-content-between align-items-center py-2 small">
+                          <span>
+                            {RETURN_KIND_LABELS[a.kind]} {a.originalBillNumber} · {a.items.map((i) => `${i.productName} × ${i.quantity}`).join(', ')}
+                          </span>
+                          <span className="d-flex align-items-center gap-2">
+                            <strong className="text-danger">- {formatMoney(a.estimatedValue)}</strong>
+                            <button type="button" className="btn btn-sm btn-outline-danger border-0" onClick={() => setAdjustments((p) => p.filter((x) => x.key !== a.key))}>
+                              <i className="bi bi-x" />
+                            </button>
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
+                </>
+              )}
+            </div>
+          </div>
         </div>
 
         {/* Right Side: Customer & Bill Summary Panel */}
@@ -597,11 +843,25 @@ export function POSPage() {
                 </div>
                 <div className="d-flex flex-wrap gap-2 mt-2">
                   <span className="badge bg-primary-subtle text-primary border">
-                    Credit: {formatMoney(walletQ.data?.balance ?? customer.walletBalance)}
+                    Available Credit: {formatMoney(availableCredit)}
+                  </span>
+                  {creditGeneratedPreview > 0 ? (
+                    <span className="badge bg-success-subtle text-success border">
+                      Credit Generated From This Transaction: {formatMoney(creditGeneratedPreview)}
+                    </span>
+                  ) : null}
+                  {creditUsedPreview > 0 ? (
+                    <span className="badge bg-warning-subtle text-dark border">
+                      Credit Used: {formatMoney(creditUsedPreview)}
+                    </span>
+                  ) : null}
+                  <span className="badge bg-light text-dark border">
+                    Remaining Credit: {formatMoney(remainingCreditPreview)}
                   </span>
                   <span className={`badge ${customer.outstandingBalance > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'} border`}>
                     Due: {formatMoney(customer.outstandingBalance)}
                   </span>
+                  {customer.isBirthday ? <span className="badge bg-warning text-dark">Birthday offer</span> : null}
                 </div>
               </div>
             ) : null}
@@ -699,6 +959,12 @@ export function POSPage() {
                 <span className="text-success">- {formatMoney(referralDiscountPreview)}</span>
               </div>
             ) : null}
+            {birthdayDiscountPreview > 0 ? (
+              <div>
+                <span>Birthday offer</span>
+                <span className="text-success">- {formatMoney(birthdayDiscountPreview)}</span>
+              </div>
+            ) : null}
             {storeDiscountAmount > 0 ? (
               <div>
                 <span>Store discount</span>
@@ -709,9 +975,31 @@ export function POSPage() {
               <span>GST / Tax Amount</span>
               <span>+ {formatMoney(totals.taxAmount)}</span>
             </div>
-            <div className="grand">
+            <div>
               <span>Grand Total</span>
-              <span className="text-navy-900">{formatMoney(totals.grandTotal)}</span>
+              <span>{formatMoney(totals.grandTotal)}</span>
+            </div>
+            {adjustmentTotal > 0 ? (
+              <div>
+                <span>Exchange/Return/Buyback Adjustment</span>
+                <span className="text-danger">- {formatMoney(adjustmentTotal)}</span>
+              </div>
+            ) : null}
+            {creditUsedPreview > 0 ? (
+              <div>
+                <span>Customer Credit Used</span>
+                <span className="text-danger">- {formatMoney(creditUsedPreview)}</span>
+              </div>
+            ) : null}
+            {creditGeneratedPreview > 0 ? (
+              <div>
+                <span>Credit Generated</span>
+                <span className="text-success">{formatMoney(creditGeneratedPreview)}</span>
+              </div>
+            ) : null}
+            <div className="grand">
+              <span>Final Payable</span>
+              <span className="text-navy-900">{formatMoney(payable)}</span>
             </div>
           </div>
 
@@ -731,7 +1019,7 @@ export function POSPage() {
               className="btn btn-pos-shortcut d-flex align-items-center justify-content-center gap-1"
               disabled={!cart.length}
               onClick={() => {
-                setPayments({ [PaymentMode.Cash]: totals.grandTotal })
+                setPayments({ [PaymentMode.Cash]: payable })
                 setPayOpen(true)
               }}
             >
@@ -748,8 +1036,8 @@ export function POSPage() {
           <div className="col-md-7 border-end">
             <div className="d-flex justify-content-between p-3 bg-light rounded-3 mb-3">
               <div>
-                <span className="text-muted small d-block">Grand Total</span>
-                <strong className="fs-5 text-navy-900">{formatMoney(totals.grandTotal)}</strong>
+                <span className="text-muted small d-block">Final Payable</span>
+                <strong className="fs-5 text-navy-900">{formatMoney(payable)}</strong>
               </div>
               <div>
                 <span className="text-muted small d-block">Total Paid</span>
@@ -784,7 +1072,7 @@ export function POSPage() {
                     <button
                       type="button"
                       className="btn btn-outline-secondary"
-                      onClick={() => setPayments((p) => ({ ...p, [m.id]: Math.max(0, totals.grandTotal - paidNonCredit + Number(p[m.id] || 0)) }))}
+                      onClick={() => setPayments((p) => ({ ...p, [m.id]: Math.max(0, payable - paidNonCredit + Number(p[m.id] || 0)) }))}
                       title="Set full remaining amount"
                     >
                       Fill
@@ -804,7 +1092,7 @@ export function POSPage() {
               {customer ? (
                 <div className="p-2 border rounded-2 bg-primary-subtle">
                   <label className="form-label mb-1 fw-bold text-primary">
-                    <i className="bi bi-wallet2 me-1" /> Use Customer Credit (Available: {formatMoney(walletQ.data?.balance ?? 0)})
+                    <i className="bi bi-wallet2 me-1" /> Use Customer Credit (Available: {formatMoney(availableCredit)})
                   </label>
                   <div className="input-group input-group-sm">
                     <span className="input-group-text">₹</span>
@@ -812,7 +1100,7 @@ export function POSPage() {
                       className="form-control"
                       type="number"
                       min={0}
-                      max={walletQ.data?.balance ?? 0}
+                      max={Math.min(availableCredit, payableBeforeWallet)}
                       value={walletRedeem}
                       onChange={(e) => setWalletRedeem(Number(e.target.value))}
                     />
@@ -877,6 +1165,8 @@ export function POSPage() {
           <input className="form-control" value={newCustomerName} onChange={(e) => setNewCustomerName(e.target.value)} />
           <label className="form-label">Address</label>
           <input className="form-control" value={newCustomerAddress} onChange={(e) => setNewCustomerAddress(e.target.value)} />
+          <label className="form-label">Date of birth (birthday offer)</label>
+          <input className="form-control" type="date" value={newCustomerDob} onChange={(e) => setNewCustomerDob(e.target.value)} />
           <label className="form-label">Referral code (optional)</label>
           <input className="form-control" value={referralCode} onChange={(e) => setReferralCode(e.target.value.toUpperCase())} />
           <button
@@ -931,18 +1221,52 @@ export function POSPage() {
 
 function CompletedBill({ bill, onNew }: { bill: Bill; onNew: () => void }) {
   const inv = useQuery({ queryKey: queryKeys.invoice(bill.id), queryFn: () => billApi.invoice(bill.id) })
+  const [waError, setWaError] = useState<string | null>(null)
+  const waMut = useMutation({
+    mutationFn: () => billApi.sendWhatsApp(bill.id),
+    onSuccess: (share) => {
+      if (!share.shareUrl) {
+        setWaError(share.error || 'Invoice generated successfully, but WhatsApp sending failed.')
+        toast.error(share.error || 'Invoice generated successfully, but WhatsApp sending failed.')
+        return
+      }
+      setWaError(null)
+      window.open(share.shareUrl, '_blank', 'noopener,noreferrer')
+      toast.success('WhatsApp message opened for sending')
+    },
+    onError: () => {
+      setWaError('Invoice generated successfully, but WhatsApp sending failed.')
+      toast.error('Invoice generated successfully, but WhatsApp sending failed.')
+    },
+  })
 
   return (
     <div className="p-4" style={{ maxWidth: '900px', margin: '0 auto' }}>
-      <div className="d-flex justify-content-between align-items-center mb-3">
-        <div className="d-flex align-items-center gap-2 text-success">
+      <div className="card-panel mb-3">
+        <div className="d-flex align-items-center gap-2 text-success mb-2">
           <i className="bi bi-check-circle-fill fs-3" />
-          <div>
-            <h2 className="h4 fw-bold mb-0">Invoice #{bill.billNumber} Saved Successfully</h2>
-            <small className="text-muted">Transaction recorded in store inventory and financial accounts.</small>
-          </div>
+          <h2 className="h4 fw-bold mb-0">Invoice Generated Successfully</h2>
         </div>
-        <div className="print-toolbar mb-0">
+        <div className="small">
+          <div>
+            Invoice Number: <strong className="font-monospace">{bill.billNumber}</strong>
+          </div>
+          <div>Customer: {bill.customerName || 'Walk-in'}</div>
+          {bill.customerMobile ? <div>Mobile: {bill.customerMobile}</div> : null}
+          {bill.adjustments?.map((a) => (
+            <div key={a.id} className="text-muted">
+              {RETURN_KIND_LABELS[a.returnKind]} receipt: {a.returnNumber}
+            </div>
+          ))}
+        </div>
+        {waError ? <div className="alert alert-warning py-2 px-3 mt-2 mb-0 small">{waError}</div> : null}
+        <div className="print-toolbar mb-0 mt-3">
+          <button type="button" className="btn btn-outline-secondary" onClick={() => document.getElementById('invoice-preview')?.scrollIntoView({ behavior: 'smooth' })}>
+            <i className="bi bi-receipt me-1" /> View Invoice
+          </button>
+          <button type="button" className="btn btn-success" onClick={() => waMut.mutate()} disabled={waMut.isPending || !bill.customerMobile}>
+            {waMut.isPending ? 'Opening WhatsApp…' : 'Send Invoice on WhatsApp'}
+          </button>
           <button type="button" className="btn btn-gold" onClick={() => window.print()}>
             <i className="bi bi-printer me-1" /> Print Invoice
           </button>
@@ -955,7 +1279,7 @@ function CompletedBill({ bill, onNew }: { bill: Bill; onNew: () => void }) {
         </div>
       </div>
 
-      {inv.data ? <InvoiceView invoice={inv.data} /> : <div className="text-center py-5">Loading tax invoice…</div>}
+      <div id="invoice-preview">{inv.data ? <InvoiceView invoice={inv.data} /> : <div className="text-center py-5">Loading tax invoice…</div>}</div>
     </div>
   )
 }

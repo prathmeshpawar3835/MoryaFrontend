@@ -1,6 +1,6 @@
 import { axiosClient, downloadResponse } from './axiosClient'
 import { cleanParams } from '../utils/query'
-import type { Bill, BillListQuery, Invoice, PagedResponse } from '../types'
+import type { Bill, BillListQuery, Invoice, PagedResponse, WhatsAppShare } from '../types'
 
 export const billApi = {
   list: async (query: BillListQuery) =>
@@ -13,6 +13,8 @@ export const billApi = {
     const res = await axiosClient.get<Blob>(`/bills/${id}/invoice/pdf`, { responseType: 'blob' })
     await downloadResponse(res, `invoice-${id}.pdf`)
   },
+  whatsappShare: async (id: number) => (await axiosClient.get<WhatsAppShare>(`/bills/${id}/whatsapp`)).data,
+  sendWhatsApp: async (id: number) => (await axiosClient.post<WhatsAppShare>(`/bills/${id}/whatsapp`)).data,
   cancel: async (id: number, reason?: string) => {
     await axiosClient.post(`/bills/${id}/cancel`, { reason })
   },

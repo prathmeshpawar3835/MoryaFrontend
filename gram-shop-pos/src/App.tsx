@@ -36,6 +36,7 @@ const ReferralsPage = lazy(() => import('./pages/Customers/CustomerPages').then(
 const ReturnsListPage = lazy(() => import('./pages/Returns/ReturnPages').then((m) => ({ default: m.ReturnsListPage })))
 const ReturnCreatePage = lazy(() => import('./pages/Returns/ReturnPages').then((m) => ({ default: m.ReturnCreatePage })))
 const ExchangePage = lazy(() => import('./pages/Returns/ReturnPages').then((m) => ({ default: m.ExchangePage })))
+const BuybackPage = lazy(() => import('./pages/Returns/ReturnPages').then((m) => ({ default: m.BuybackPage })))
 const SalesReportPage = lazy(() => import('./pages/Reports/ReportPages').then((m) => ({ default: m.SalesReportPage })))
 const ProductSalesReportPage = lazy(() => import('./pages/Reports/ReportPages').then((m) => ({ default: m.ProductSalesReportPage })))
 const InventoryReportPage = lazy(() => import('./pages/Reports/ReportPages').then((m) => ({ default: m.InventoryReportPage })))
@@ -113,6 +114,7 @@ export default function App() {
                     <Route path="/returns" element={<ReturnsListPage />} />
                     <Route path="/returns/new" element={<ReturnCreatePage />} />
                     <Route path="/returns/exchange" element={<ExchangePage />} />
+                    <Route path="/returns/buyback" element={<BuybackPage />} />
                     <Route path="/repairs" element={<RepairsPage />} />
                     <Route path="/reports/sales" element={<SalesReportPage />} />
                     <Route path="/reports/products" element={<ProductSalesReportPage />} />

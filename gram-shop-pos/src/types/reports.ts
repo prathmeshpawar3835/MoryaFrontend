@@ -18,6 +18,12 @@ export interface Dashboard {
   todayExchangeCount: number
   monthlyExchanges: number
   monthlyExchangeCount: number
+  todayBuybacks?: number
+  todayBuybackCount?: number
+  monthlyBuybacks?: number
+  monthlyBuybackCount?: number
+  todayCreditUsed?: number
+  todayCreditGenerated?: number
   totalCustomers: number
   purchasingCustomers: number
   customerPurchaseRatio: number
@@ -59,8 +65,10 @@ export interface ExchangeReturnChartPoint {
   date: string
   exchangeAmount: number
   returnAmount: number
+  buybackAmount?: number
   exchangeCount: number
   returnCount: number
+  buybackCount?: number
 }
 
 export interface PaymentModeSummary {
@@ -80,6 +88,11 @@ export interface SalesReport {
   tax: number
   discounts: number
   netSales: number
+  returnAmount?: number
+  exchangeAmount?: number
+  buybackAmount?: number
+  creditUsed?: number
+  creditGenerated?: number
   paymentBreakdown: PaymentModeSummary[]
   bills: PagedResponse<Bill>
 }
@@ -172,6 +185,7 @@ export interface Settings {
   rewardType: RewardType
   rewardTrigger: RewardTrigger
   referralStoreWise: boolean
+  birthdayDiscountPercent?: number
   taxSettings: TaxSetting[]
 }
 
