@@ -11,7 +11,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { changePasswordSchema } from '../validators/schemas'
 import { authApi } from '../api/authApi'
 import toast from 'react-hot-toast'
-import { toastApiError } from '../../utils/errors'
+import { toastApiError } from '../utils/errors'
 import type { z } from 'zod'
 
 type Form = z.infer<typeof changePasswordSchema>
