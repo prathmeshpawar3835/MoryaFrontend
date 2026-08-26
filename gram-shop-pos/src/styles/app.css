@@ -767,6 +767,7 @@ html, body, #root {
   cursor: pointer; list-style: none; font-size: 0.92rem;
 }
 .pos-section details > summary::-webkit-details-marker { display: none; }
+.pos-side .pos-section { padding: 0.65rem 0.75rem; margin: 0; }
 .pos-credit-box {
   border: 1px solid var(--gold-100);
   background: var(--gold-50);

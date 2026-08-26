@@ -8,21 +8,31 @@ import { productApi } from '../../api/productApi'
 import { posApi } from '../../api/posApi'
 import { queryKeys } from '../../api/queryKeys'
 import { useStore } from '../../context/StoreContext'
+import { useAuth } from '../../context/AuthContext'
 import { PageHeader, SearchBox, CurrencyDisplay } from '../../components/common/Feedback'
 import { DataTable } from '../../components/tables/DataTable'
 import { FormField } from '../../components/common/FormField'
+import { Modal } from '../../components/common/Modal'
+import { ReturnDocumentReceipt } from '../../components/print/ReceiptView'
 import { formatDateTime, formatMoney } from '../../utils/format'
 import { toastApiError } from '../../utils/errors'
+import { applyAdminDeduction, deductionPercentFor } from '../../utils/deduction'
 import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
-import { PaymentMode } from '../../types'
+import { PaymentMode, ReturnKind } from '../../types'
 import type { Bill, Product } from '../../types'
 
 export function ReturnsListPage() {
   const { selectedStoreId } = useStore()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
+  const [receiptId, setReceiptId] = useState<number | null>(null)
   const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined }
   const q = useQuery({ queryKey: queryKeys.returns(query), queryFn: () => returnApi.list(query) })
+  const receipt = useQuery({
+    queryKey: ['returns', receiptId],
+    queryFn: () => returnApi.get(receiptId!),
+    enabled: receiptId != null,
+  })
 
   return (
     <>
@@ -58,7 +68,7 @@ export function ReturnsListPage() {
       <DataTable
         loading={q.isLoading}
         error={q.isError ? 'Could not load returns list' : null}
-        columns={['Return Number', 'Original Bill', 'Return Date', 'Refund Amount', 'Return Type', 'Actions']}
+        columns={['Return Number', 'Customer', 'Original Bill', 'Return Date', 'Refund Amount', 'Return Type', 'Actions']}
         page={q.data?.pageNumber}
         totalPages={q.data?.totalPages}
         onPage={setPage}
@@ -67,6 +77,10 @@ export function ReturnsListPage() {
           <tr key={r.id}>
             <td>
               <span className="fw-bold font-monospace text-navy-900">{r.returnNumber}</span>
+            </td>
+            <td>
+              <div className="fw-semibold">{r.customerName || '—'}</div>
+              <div className="small text-muted font-monospace">{r.customerCode || ''}</div>
             </td>
             <td>
               <span className="badge bg-light text-dark border font-monospace">{r.originalBillNumber}</span>
@@ -81,18 +95,36 @@ export function ReturnsListPage() {
               </span>
             </td>
             <td>
-              <button
-                className="btn btn-sm btn-outline-secondary"
-                type="button"
-                onClick={() => void returnApi.pdf(r.id)}
-                title="Download Return Receipt PDF"
-              >
-                <i className="bi bi-file-earmark-pdf me-1" /> PDF
-              </button>
+              <div className="d-flex gap-1 flex-wrap">
+                <button className="btn btn-sm btn-outline-secondary" type="button" onClick={() => setReceiptId(r.id)}>
+                  View Receipt
+                </button>
+                <button
+                  className="btn btn-sm btn-outline-secondary"
+                  type="button"
+                  onClick={() => void returnApi.pdf(r.id)}
+                  title="Download Return Receipt PDF"
+                >
+                  <i className="bi bi-file-earmark-pdf me-1" /> PDF
+                </button>
+              </div>
             </td>
           </tr>
         ))}
       </DataTable>
+      <Modal open={receiptId != null} title="Receipt" onClose={() => setReceiptId(null)} wide>
+        {receipt.data ? (
+          <>
+            <div className="print-toolbar mb-2">
+              <button className="btn btn-outline-secondary btn-sm" type="button" onClick={() => window.print()}>Print</button>
+              <button className="btn btn-outline-secondary btn-sm" type="button" onClick={() => void returnApi.pdf(receipt.data!.id)}>Download PDF</button>
+            </div>
+            <ReturnDocumentReceipt record={receipt.data} />
+          </>
+        ) : (
+          <div className="text-muted">Loading receipt…</div>
+        )}
+      </Modal>
     </>
   )
 }
@@ -101,11 +133,13 @@ export function ReturnCreatePage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { selectedStoreId } = useStore()
+  const { isAdmin } = useAuth()
   const [billSearch, setBillSearch] = useState('')
   const [billId, setBillId] = useState(Number(params.get('billId') || 0) || 0)
   const [reason, setReason] = useState('')
   const [qty, setQty] = useState<Record<number, number>>({})
   const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
+  const [amount, setAmount] = useState<number | ''>('')
 
   const searchQ = useQuery({
     queryKey: ['bills', 'lookup', billSearch, selectedStoreId],
@@ -122,8 +156,17 @@ export function ReturnCreatePage() {
     queryFn: () => posApi.salesPersons(selectedStoreId!),
     enabled: Boolean(selectedStoreId),
   })
+  const billingRulesQ = useQuery({
+    queryKey: ['pos', 'billing-rules'],
+    queryFn: posApi.billingRules,
+    staleTime: 5 * 60 * 1000,
+  })
 
   const totalReturnQty = Object.values(qty).reduce((s, q) => s + (q || 0), 0)
+  const returnGross = useMemo(() => {
+    if (!bill.data) return 0
+    return bill.data.items.reduce((s, i) => s + ((qty[i.id] || 0) / i.quantity) * i.total, 0)
+  }, [bill.data, qty])
 
   const mut = useMutation({
     mutationFn: () =>
@@ -131,6 +174,7 @@ export function ReturnCreatePage() {
         originalBillId: billId,
         reason,
         salesPersonId: salesPersonId || undefined,
+        amount: isAdmin && amount !== '' ? Number(amount) : undefined,
         items: Object.entries(qty)
           .filter(([, q]) => q > 0)
           .map(([id, q]) => ({ originalBillItemId: Number(id), quantity: q })),
@@ -275,6 +319,14 @@ export function ReturnCreatePage() {
             </div>
           </div>
 
+          <AdjustmentAmountPanel
+            kind={ReturnKind.Return}
+            gross={returnGross}
+            percent={deductionPercentFor(ReturnKind.Return, billingRulesQ.data)}
+            amount={amount}
+            onAmount={setAmount}
+          />
+
           <div className="d-flex justify-content-end gap-2 pt-3 mt-3 border-top">
             <button
               className="btn btn-gold px-4 fw-bold"
@@ -302,6 +354,7 @@ export function ExchangePage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { selectedStoreId } = useStore()
+  const { isAdmin } = useAuth()
   const [billSearch, setBillSearch] = useState('')
   const [billId, setBillId] = useState(Number(params.get('billId') || 0) || 0)
   const [reason, setReason] = useState('')
@@ -310,6 +363,7 @@ export function ExchangePage() {
   const [search, setSearch] = useState('')
   const [cash, setCash] = useState(0)
   const [salesPersonId, setSalesPersonId] = useState<number | ''>('')
+  const [amount, setAmount] = useState<number | ''>('')
 
   const searchQ = useQuery({
     queryKey: ['bills', 'lookup-ex', billSearch, selectedStoreId],
@@ -331,14 +385,21 @@ export function ExchangePage() {
     queryFn: () => posApi.salesPersons(selectedStoreId!),
     enabled: Boolean(selectedStoreId),
   })
+  const billingRulesQ = useQuery({
+    queryKey: ['pos', 'billing-rules'],
+    queryFn: posApi.billingRules,
+    staleTime: 5 * 60 * 1000,
+  })
 
   const returnValue = useMemo(() => {
     if (!bill.data) return 0
     return bill.data.items.reduce((s, i) => s + ((qty[i.id] || 0) / i.quantity) * i.total, 0)
   }, [bill.data, qty])
+  const calculatedReturn = applyAdminDeduction(returnValue, deductionPercentFor(ReturnKind.Exchange, billingRulesQ.data)).net
+  const finalReturn = isAdmin && amount !== '' ? Number(amount) : calculatedReturn
 
   const newValue = newItems.reduce((s, i) => s + i.product.sellingPrice * i.quantity, 0)
-  const difference = newValue - returnValue
+  const difference = newValue - finalReturn
 
   const mut = useMutation({
     mutationFn: () =>
@@ -346,6 +407,7 @@ export function ExchangePage() {
         originalBillId: billId,
         reason,
         salesPersonId: salesPersonId || undefined,
+        amount: isAdmin && amount !== '' ? Number(amount) : undefined,
         returnItems: Object.entries(qty)
           .filter(([, q]) => q > 0)
           .map(([id, q]) => ({ originalBillItemId: Number(id), quantity: q })),
@@ -548,7 +610,7 @@ export function ExchangePage() {
           <div className="row g-3">
             <div className="col-md-4">
               <span className="text-muted small d-block">Est. Returned Credit</span>
-              <strong className="fs-5 text-danger">{formatMoney(returnValue)}</strong>
+              <strong className="fs-5 text-danger">{formatMoney(finalReturn)}</strong>
             </div>
             <div className="col-md-4 border-start">
               <span className="text-muted small d-block">New Items Value</span>
@@ -591,6 +653,14 @@ export function ExchangePage() {
           </div>
         </div>
 
+        <AdjustmentAmountPanel
+          kind={ReturnKind.Exchange}
+          gross={returnValue}
+          percent={deductionPercentFor(ReturnKind.Exchange, billingRulesQ.data)}
+          amount={amount}
+          onAmount={setAmount}
+        />
+
         <div className="d-flex justify-content-end gap-2 pt-3 mt-3 border-top">
           <button
             className="btn btn-gold px-4 fw-bold"
@@ -617,6 +687,7 @@ export function BuybackPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const { selectedStoreId } = useStore()
+  const { isAdmin } = useAuth()
   const [billSearch, setBillSearch] = useState('')
   const [billId, setBillId] = useState(Number(params.get('billId') || 0) || 0)
   const [reason, setReason] = useState('')
@@ -639,15 +710,24 @@ export function BuybackPage() {
     queryFn: () => posApi.salesPersons(selectedStoreId!),
     enabled: Boolean(selectedStoreId),
   })
+  const billingRulesQ = useQuery({
+    queryKey: ['pos', 'billing-rules'],
+    queryFn: posApi.billingRules,
+    staleTime: 5 * 60 * 1000,
+  })
 
   const totalQty = Object.values(qty).reduce((s, q) => s + (q || 0), 0)
+  const buybackGross = useMemo(() => {
+    if (!bill.data) return 0
+    return bill.data.items.reduce((s, i) => s + ((qty[i.id] || 0) / i.quantity) * i.total, 0)
+  }, [bill.data, qty])
 
   const mut = useMutation({
     mutationFn: () =>
       returnApi.buyback({
         originalBillId: billId,
         reason,
-        amount: amount === '' ? undefined : Number(amount),
+        amount: isAdmin && amount !== '' ? Number(amount) : undefined,
         salesPersonId: salesPersonId || undefined,
         items: Object.entries(qty)
           .filter(([, q]) => q > 0)
@@ -747,11 +827,6 @@ export function BuybackPage() {
 
           <div className="row g-3 mt-2">
             <div className="col-md-4">
-              <FormField label="Buyback value (optional override)">
-                <input className="form-control" type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value === '' ? '' : Number(e.target.value))} />
-              </FormField>
-            </div>
-            <div className="col-md-4">
               <FormField label="Sales person">
                 <select className="form-select" value={salesPersonId} onChange={(e) => setSalesPersonId(e.target.value ? Number(e.target.value) : '')}>
                   <option value="">Current user</option>
@@ -765,6 +840,14 @@ export function BuybackPage() {
             </div>
           </div>
 
+          <AdjustmentAmountPanel
+            kind={ReturnKind.Buyback}
+            gross={buybackGross}
+            percent={deductionPercentFor(ReturnKind.Buyback, billingRulesQ.data)}
+            amount={amount}
+            onAmount={setAmount}
+          />
+
           <div className="d-flex justify-content-end gap-2 pt-3 mt-3 border-top">
             <button className="btn btn-gold px-4 fw-bold" type="button" disabled={!bill.data || totalQty === 0 || !reason || mut.isPending} onClick={() => mut.mutate()}>
               {mut.isPending ? 'Processing Buyback…' : 'Confirm Buyback'}
@@ -773,5 +856,61 @@ export function BuybackPage() {
         </div>
       ) : null}
     </>
+  )
+}
+
+function AdjustmentAmountPanel({
+  kind,
+  gross,
+  percent,
+  amount,
+  onAmount,
+}: {
+  kind: number
+  gross: number
+  percent: number
+  amount: number | ''
+  onAmount: (v: number | '') => void
+}) {
+  const { isAdmin } = useAuth()
+  const calc = applyAdminDeduction(gross, percent)
+  const final = isAdmin && amount !== '' ? Number(amount) : calc.net
+  return (
+    <div className="p-3 bg-light rounded-3 mt-3">
+      <div className="small fw-bold text-muted text-uppercase mb-2">{RETURN_KIND_LABELS[kind] ?? 'Adjustment'} amount</div>
+      <div className="row g-3 align-items-end">
+        <div className="col-md-3">
+          <div className="small text-muted">Original value</div>
+          <strong>{formatMoney(calc.gross)}</strong>
+        </div>
+        <div className="col-md-3">
+          <div className="small text-muted">Admin deduction ({calc.percent}%)</div>
+          <strong className="text-danger">- {formatMoney(calc.deduction)}</strong>
+        </div>
+        <div className="col-md-3">
+          <div className="small text-muted">Calculated amount</div>
+          <strong>{formatMoney(calc.net)}</strong>
+        </div>
+        {isAdmin ? (
+          <div className="col-md-3">
+            <FormField label="Final amount (editable)">
+              <input
+                className="form-control"
+                type="number"
+                min={0}
+                value={amount}
+                placeholder={String(calc.net)}
+                onChange={(e) => onAmount(e.target.value === '' ? '' : Number(e.target.value))}
+              />
+            </FormField>
+          </div>
+        ) : (
+          <div className="col-md-3">
+            <div className="small text-muted">Final amount</div>
+            <strong>{formatMoney(final)}</strong>
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

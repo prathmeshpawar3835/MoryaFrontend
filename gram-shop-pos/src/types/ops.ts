@@ -234,6 +234,7 @@ export interface CreateReturnRequest {
   originalBillId: number
   reason?: string
   salesPersonId?: number | null
+  amount?: number | null
   items: { originalBillItemId: number; quantity: number }[]
 }
 
@@ -245,6 +246,10 @@ export interface ReturnRecord {
   returnNumber: string
   returnDate: string
   customerId?: number | null
+  customerName?: string | null
+  customerCode?: string | null
+  customerMobile?: string | null
+  storeName?: string | null
   returnAmount: number
   grossAmount?: number
   deductionPercent?: number
@@ -277,6 +282,7 @@ export interface CreateExchangeRequest {
   billDiscount: number
   walletRedeemAmount: number
   salesPersonId?: number | null
+  amount?: number | null
   payments: CreatePaymentRequest[]
 }
 

@@ -725,8 +725,7 @@ export function POSPage() {
                             })}
                           </tbody>
                         </table>
-                        {adjKind === ReturnKind.Buyback || isAdmin ? (
-                          <div className="mt-2 row g-2">
+                        <div className="mt-2 row g-2">
                             <div className="col-md-6">
                               <label className="form-label small mb-1">Calculated amount</label>
                               <input className="form-control form-control-sm" disabled value={(() => {
@@ -751,7 +750,6 @@ export function POSPage() {
                               </div>
                             ) : null}
                           </div>
-                        ) : null}
                         <button
                           type="button"
                           className="btn btn-sm btn-outline-secondary mt-2"
@@ -1018,61 +1016,77 @@ export function POSPage() {
             ) : null}
           </div>
 
-          <div>
-            <label className="form-label">Sales person</label>
-            <select
-              className="form-select form-select-sm"
-              value={salesPersonId}
-              onChange={(e) => setSalesPersonId(e.target.value ? Number(e.target.value) : '')}
-            >
-              <option value="">Current user</option>
-              {salesPersonsQ.data?.map((sp) => (
-                <option key={sp.id} value={sp.id}>
-                  {sp.fullName}
-                </option>
-              ))}
-            </select>
+          <div className="card-panel pos-section py-2">
+            <details open>
+              <summary>
+                <strong>Sales person</strong>
+              </summary>
+              <div className="pt-2">
+                <select
+                  className="form-select form-select-sm"
+                  value={salesPersonId}
+                  onChange={(e) => setSalesPersonId(e.target.value ? Number(e.target.value) : '')}
+                >
+                  <option value="">Current user</option>
+                  {salesPersonsQ.data?.map((sp) => (
+                    <option key={sp.id} value={sp.id}>
+                      {sp.fullName}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </details>
           </div>
 
-          {discountsQ.data?.length ? (
-            <div>
-              <label className="form-label">Store discount</label>
-              <select
-                className="form-select form-select-sm"
-                value={storeDiscountId}
-                onChange={(e) => setStoreDiscountId(e.target.value ? Number(e.target.value) : '')}
-              >
-                <option value="">None</option>
-                {discountsQ.data.map((d) => (
-                  <option key={d.id} value={d.id}>
-                    {d.name} ({d.discountKind === DiscountKind.Percentage ? `${d.value}%` : formatMoney(d.value)})
-                  </option>
-                ))}
-              </select>
-            </div>
-          ) : null}
-
-          {/* Bill Overall Discount */}
-          <div>
-            <label className="form-label">Overall Bill Discount (₹)</label>
-            <input
-              className="form-control form-control-sm"
-              type="number"
-              min={0}
-              value={billDiscount}
-              onChange={(e) => setBillDiscount(Number(e.target.value))}
-            />
+          <div className="card-panel pos-section py-2">
+            <details open>
+              <summary>
+                <strong>Coupon / Store Discount</strong>
+              </summary>
+              <div className="pt-2 stack-form">
+                {discountsQ.data?.length ? (
+                  <>
+                    <label className="form-label small mb-1">Store discount</label>
+                    <select
+                      className="form-select form-select-sm"
+                      value={storeDiscountId}
+                      onChange={(e) => setStoreDiscountId(e.target.value ? Number(e.target.value) : '')}
+                    >
+                      <option value="">None</option>
+                      {discountsQ.data.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.name} ({d.discountKind === DiscountKind.Percentage ? `${d.value}%` : formatMoney(d.value)})
+                        </option>
+                      ))}
+                    </select>
+                  </>
+                ) : null}
+                <label className="form-label small mb-1 mt-2">Other discount (₹)</label>
+                <input
+                  className="form-control form-control-sm"
+                  type="number"
+                  min={0}
+                  value={billDiscount}
+                  onChange={(e) => setBillDiscount(Number(e.target.value))}
+                />
+              </div>
+            </details>
           </div>
 
-          {/* Notes */}
-          <div>
-            <label className="form-label">Bill Remarks / Notes</label>
-            <input
-              className="form-control form-control-sm"
-              placeholder="Optional invoice notes"
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-            />
+          <div className="card-panel pos-section py-2">
+            <details>
+              <summary>
+                <strong>Voucher / Remarks</strong>
+              </summary>
+              <div className="pt-2">
+                <input
+                  className="form-control form-control-sm"
+                  placeholder="Optional invoice notes"
+                  value={notes}
+                  onChange={(e) => setNotes(e.target.value)}
+                />
+              </div>
+            </details>
           </div>
 
           {/* Bill Totals Summary */}

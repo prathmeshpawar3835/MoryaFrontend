@@ -18,6 +18,7 @@ import { toastApiError } from '../../utils/errors'
 import { ITEM_STATUS_LABELS, REPAIR_STATUS_LABELS, REPAIR_TYPE_LABELS } from '../../constants/labels'
 import { DiscountKind, OfferCategory, PaymentMode, RepairJobStatus, RepairJobType } from '../../types'
 import type { RepairJob, StoreDiscount } from '../../types'
+import { RepairDocumentReceipt } from '../../components/print/ReceiptView'
 
 export function CustomerLedgerSearchPage() {
   const navigate = useNavigate()
@@ -374,6 +375,7 @@ export function RepairsPage() {
   const [payAmount, setPayAmount] = useState(0)
   const [payMode, setPayMode] = useState(PaymentMode.Cash)
   const [payRef, setPayRef] = useState('')
+  const [receiptJob, setReceiptJob] = useState<RepairJob | null>(null)
   const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined }
   const q = useQuery({ queryKey: queryKeys.repairs(query), queryFn: () => repairApi.list(query) })
   const bills = useQuery({
@@ -452,7 +454,8 @@ export function RepairsPage() {
                 {j.dueAmount > 0 ? (
                   <button className="btn btn-sm btn-gold" type="button" onClick={() => { setPayJob(j); setPayAmount(j.dueAmount) }}>Pay</button>
                 ) : null}
-                <button className="btn btn-sm btn-outline-secondary" type="button" onClick={() => void repairApi.pdf(j.id)}>Receipt</button>
+                <button className="btn btn-sm btn-outline-secondary" type="button" onClick={() => setReceiptJob(j)}>View Receipt</button>
+                <button className="btn btn-sm btn-outline-secondary" type="button" onClick={() => void repairApi.pdf(j.id)}>PDF</button>
               </div>
             </td>
           </tr>
@@ -558,6 +561,17 @@ export function RepairsPage() {
             >
               Save payment
             </button>
+          </>
+        ) : null}
+      </Modal>
+      <Modal open={!!receiptJob} title={receiptJob?.jobType === RepairJobType.Polish ? 'Polish Receipt' : 'Repair Receipt'} onClose={() => setReceiptJob(null)} wide>
+        {receiptJob ? (
+          <>
+            <div className="print-toolbar mb-2">
+              <button className="btn btn-outline-secondary btn-sm" type="button" onClick={() => window.print()}>Print</button>
+              <button className="btn btn-outline-secondary btn-sm" type="button" onClick={() => void repairApi.pdf(receiptJob.id)}>Download PDF</button>
+            </div>
+            <RepairDocumentReceipt job={receiptJob} shopName={stores.find((s) => s.storeId === receiptJob.storeId)?.storeName} />
           </>
         ) : null}
       </Modal>
