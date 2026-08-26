@@ -15,12 +15,15 @@ import { useHotkeys } from '../../hooks/useHotkeys'
 import { calculateBill } from '../../utils/billCalc'
 import { formatMoney } from '../../utils/format'
 import { toastApiError } from '../../utils/errors'
+import { creditOveruseMessage } from '../../utils/credit'
+import { applyAdminDeduction, deductionPercentFor } from '../../utils/deduction'
 import { DiscountKind, PaymentMode, ReturnKind, RewardType } from '../../types'
 import type { Bill, Customer, Product, StoreDiscount } from '../../types'
 import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
 import { Modal } from '../../components/common/Modal'
 import { InvoiceView } from '../../components/print/InvoiceView'
 import { StoreSelector } from '../../components/common/StoreSelector'
+import { useAuth } from '../../context/AuthContext'
 
 interface CartLine {
   product: Product
@@ -48,6 +51,7 @@ const PAY_MODES = [
 
 export function POSPage() {
   const { selectedStoreId, setSelectedStoreId } = useStore()
+  const { isAdmin } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const qc = useQueryClient()
@@ -103,6 +107,7 @@ export function POSPage() {
     queryKey: queryKeys.customerWallet(customer?.id ?? 0),
     queryFn: () => customerApi.wallet(customer!.id),
     enabled: Boolean(customer),
+    staleTime: 15_000,
   })
 
   const mobileExact = customerDebounced.trim()
@@ -123,12 +128,20 @@ export function POSPage() {
     queryKey: queryKeys.salesPersons(storeId),
     queryFn: () => posApi.salesPersons(storeId!),
     enabled: Boolean(storeId),
+    staleTime: 5 * 60 * 1000,
+  })
+
+  const billingRulesQ = useQuery({
+    queryKey: ['pos', 'billing-rules'],
+    queryFn: posApi.billingRules,
+    staleTime: 5 * 60 * 1000,
   })
 
   const discountsQ = useQuery({
     queryKey: queryKeys.discounts(storeId, true, 1),
     queryFn: () => discountApi.list(storeId, true, 1),
     enabled: Boolean(storeId),
+    staleTime: 5 * 60 * 1000,
   })
 
   const eligibilityQ = useQuery({
@@ -308,8 +321,13 @@ export function POSPage() {
   })
 
   const completeMut = useMutation({
-    mutationFn: () =>
-      posApi.createBill({
+    mutationFn: () => {
+      if (walletRedeem > 0 && walletRedeem > availableCredit + 0.001) {
+        throw Object.assign(new Error(creditOveruseMessage(availableCredit, walletRedeem)), {
+          userMessage: creditOveruseMessage(availableCredit, walletRedeem),
+        })
+      }
+      return posApi.createBill({
         storeId: storeId!,
         customerId: customer?.id,
         billDiscount,
@@ -325,7 +343,7 @@ export function POSPage() {
           kind: a.kind,
           originalBillId: a.originalBillId,
           reason: a.reason || undefined,
-          amount: a.kind === ReturnKind.Buyback ? a.amount : undefined,
+          amount: isAdmin ? a.amount : undefined,
           items: a.items.map((i) => ({ originalBillItemId: i.originalBillItemId, quantity: i.quantity })),
         })),
         payments: Object.entries(payments)
@@ -335,7 +353,8 @@ export function POSPage() {
             amount: Number(amt),
             referenceNumber: refs[Number(mode)] || undefined,
           })),
-      }),
+      })
+    },
     onSuccess: async (bill) => {
       toast.success(`Bill ${bill.billNumber} completed!`)
       setCompleted(bill)
@@ -602,12 +621,13 @@ export function POSPage() {
             </table>
           </div>
 
-          <div className="card border-0 shadow-sm mt-3" style={{ borderRadius: '12px' }}>
-            <div className="card-header bg-white d-flex justify-content-between align-items-center py-2">
-              <strong>Exchange / Return / Buyback</strong>
-              <span className="small text-muted">Optional — same sale transaction</span>
-            </div>
-            <div className="card-body py-3">
+          <div className="card-panel pos-section mt-3">
+            <details open>
+              <summary>
+                <strong>Exchange / Return / Buyback</strong>
+                <span className="small text-muted">Optional — same sale</span>
+              </summary>
+            <div className="pt-3">
               {!customer ? (
                 <div className="text-muted small">Select a customer first to look up an original invoice.</div>
               ) : (
@@ -705,16 +725,31 @@ export function POSPage() {
                             })}
                           </tbody>
                         </table>
-                        {adjKind === ReturnKind.Buyback ? (
-                          <div className="mt-2" style={{ maxWidth: '220px' }}>
-                            <label className="form-label small mb-1">Buyback value (optional)</label>
-                            <input
-                              className="form-control form-control-sm"
-                              type="number"
-                              min={0}
-                              value={adjAmount}
-                              onChange={(e) => setAdjAmount(e.target.value === '' ? '' : Number(e.target.value))}
-                            />
+                        {adjKind === ReturnKind.Buyback || isAdmin ? (
+                          <div className="mt-2 row g-2">
+                            <div className="col-md-6">
+                              <label className="form-label small mb-1">Calculated amount</label>
+                              <input className="form-control form-control-sm" disabled value={(() => {
+                                const gross = adjBillQ.data.items.reduce((s, i) => {
+                                  const qty = adjQty[i.id] || 0
+                                  return s + (qty > 0 ? Math.round((i.total * qty) / i.quantity * 100) / 100 : 0)
+                                }, 0)
+                                return applyAdminDeduction(gross, deductionPercentFor(adjKind, billingRulesQ.data)).net
+                              })()}
+                              />
+                            </div>
+                            {isAdmin ? (
+                              <div className="col-md-6">
+                                <label className="form-label small mb-1">Final amount (editable)</label>
+                                <input
+                                  className="form-control form-control-sm"
+                                  type="number"
+                                  min={0}
+                                  value={adjAmount}
+                                  onChange={(e) => setAdjAmount(e.target.value === '' ? '' : Number(e.target.value))}
+                                />
+                              </div>
+                            ) : null}
                           </div>
                         ) : null}
                         <button
@@ -738,10 +773,12 @@ export function POSPage() {
                               toast.error('Select at least one available product')
                               return
                             }
+                            const gross = selected.reduce((s, i) => s + i.lineValue, 0)
+                            const calculated = applyAdminDeduction(gross, deductionPercentFor(adjKind, billingRulesQ.data)).net
                             const estimated =
-                              adjKind === ReturnKind.Buyback && adjAmount !== ''
+                              isAdmin && adjAmount !== ''
                                 ? Number(adjAmount)
-                                : selected.reduce((s, i) => s + i.lineValue, 0)
+                                : calculated
                             setAdjustments((prev) => [
                               ...prev,
                               {
@@ -750,7 +787,7 @@ export function POSPage() {
                                 originalBillId: bill.id,
                                 originalBillNumber: bill.billNumber,
                                 reason: adjReason,
-                                amount: adjKind === ReturnKind.Buyback && adjAmount !== '' ? Number(adjAmount) : undefined,
+                                amount: isAdmin && adjAmount !== '' ? Number(adjAmount) : calculated,
                                 items: selected,
                                 estimatedValue: estimated,
                               },
@@ -785,6 +822,7 @@ export function POSPage() {
                 </>
               )}
             </div>
+            </details>
           </div>
         </div>
 
@@ -803,11 +841,11 @@ export function POSPage() {
               <input
                 ref={customerRef}
                 className="form-control border-start-0"
-                placeholder="Enter 10-digit mobile number"
+                placeholder="Mobile, name, or customer code (F4)"
                 value={customer ? `${customer.mobileNumber}` : customerQuery}
                 onChange={(e) => {
                   setCustomer(null)
-                  setCustomerQuery(e.target.value.replace(/\D/g, '').slice(0, 10))
+                  setCustomerQuery(e.target.value)
                 }}
               />
               {customer ? (
@@ -883,8 +921,8 @@ export function POSPage() {
                   </span>
                   {eligibilityQ.data?.isBirthdayToday ? <span className="badge bg-warning text-dark">Birthday today</span> : null}
                 </div>
-                {eligibilityQ.data?.isBirthdayToday ? (
-                  <div className="alert alert-warning py-2 px-3 mt-2 mb-0">
+                  {eligibilityQ.data?.isBirthdayToday ? (
+                    <div className="alert alert-warning py-2 px-3 mt-2 mb-0">
                     <div className="fw-bold">🎂 Birthday Today</div>
                     <div>Happy Birthday, {eligibilityQ.data.customerName}!</div>
                     {eligibilityQ.data.alreadyRedeemed ? (
@@ -918,6 +956,39 @@ export function POSPage() {
               </div>
             ) : null}
           </div>
+
+          {customer ? (
+            <div className="pos-credit-box">
+              <div className="d-flex justify-content-between align-items-baseline mb-1">
+                <span className="small fw-bold text-navy-900">Customer Credit Available</span>
+                <strong className="text-success">{formatMoney(availableCredit)}</strong>
+              </div>
+              <label className="form-label small mb-1">Credit used on this invoice</label>
+              <div className="input-group input-group-sm">
+                <span className="input-group-text">₹</span>
+                <input
+                  className="form-control"
+                  type="number"
+                  min={0}
+                  value={walletRedeem}
+                  onChange={(e) => {
+                    const next = Number(e.target.value)
+                    setWalletRedeem(next)
+                    if (next > availableCredit + 0.001) {
+                      toast.error(creditOveruseMessage(availableCredit, next))
+                    }
+                  }}
+                />
+              </div>
+              {walletRedeem > availableCredit + 0.001 ? (
+                <div className="text-danger small mt-1">{creditOveruseMessage(availableCredit, walletRedeem)}</div>
+              ) : (
+                <div className="small text-muted mt-1">
+                  Remaining payable after credit: {formatMoney(payable)}
+                </div>
+              )}
+            </div>
+          ) : null}
 
           <div>
             <label className="form-label">Referral / customer code</label>
@@ -1007,8 +1078,12 @@ export function POSPage() {
           {/* Bill Totals Summary */}
           <div className="pos-totals">
             <div>
-              <span>Items Subtotal</span>
+              <span>Product / Ornament Amount</span>
               <span>{formatMoney(totals.subtotal)}</span>
+            </div>
+            <div>
+              <span>Sub Amount</span>
+              <span>{formatMoney(Math.max(0, totals.subtotal - totals.itemDiscountTotal))}</span>
             </div>
             {totals.itemDiscountTotal > 0 ? (
               <div>
@@ -1056,11 +1131,15 @@ export function POSPage() {
               </span>
             </div>
             <div>
-              <span>GST / Tax Amount</span>
-              <span>+ {formatMoney(totals.taxAmount)}</span>
+              <span>CGST</span>
+              <span>+ {formatMoney(totals.taxAmount / 2)}</span>
             </div>
             <div>
-              <span>Grand Total</span>
+              <span>SGST</span>
+              <span>+ {formatMoney(totals.taxAmount / 2)}</span>
+            </div>
+            <div>
+              <span>Total Amount</span>
               <span>{formatMoney(totals.grandTotal)}</span>
             </div>
             {adjustmentTotal > 0 ? (
@@ -1081,6 +1160,14 @@ export function POSPage() {
                 <span className="text-success">{formatMoney(creditGeneratedPreview)}</span>
               </div>
             ) : null}
+            <div>
+              <span>Paid Amount</span>
+              <span>{formatMoney(paidTotal)}</span>
+            </div>
+            <div>
+              <span>Due Amount</span>
+              <span>{formatMoney(Math.max(0, remaining))}</span>
+            </div>
             <div className="grand">
               <span>Final Payable</span>
               <span className="text-navy-900">{formatMoney(payable)}</span>
@@ -1186,7 +1273,13 @@ export function POSPage() {
                       min={0}
                       max={Math.min(availableCredit, payableBeforeWallet)}
                       value={walletRedeem}
-                      onChange={(e) => setWalletRedeem(Number(e.target.value))}
+                      onChange={(e) => {
+                    const next = Number(e.target.value)
+                    setWalletRedeem(next)
+                    if (next > availableCredit + 0.001) {
+                      toast.error(creditOveruseMessage(availableCredit, next))
+                    }
+                  }}
                     />
                   </div>
                 </div>

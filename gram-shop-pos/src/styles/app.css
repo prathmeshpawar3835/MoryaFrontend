@@ -762,6 +762,22 @@ html, body, #root {
   font-size: 1.25rem; font-weight: 800; color: var(--navy-900);
   border-top: 1px dashed var(--line); padding-top: 0.5rem; margin-top: 0.25rem;
 }
+.pos-section details > summary {
+  display: flex; justify-content: space-between; align-items: center; gap: 0.75rem;
+  cursor: pointer; list-style: none; font-size: 0.92rem;
+}
+.pos-section details > summary::-webkit-details-marker { display: none; }
+.pos-credit-box {
+  border: 1px solid var(--gold-100);
+  background: var(--gold-50);
+  border-radius: var(--radius-md);
+  padding: 0.75rem 0.85rem;
+}
+.receipt-paper { max-width: 640px; }
+.ledger-kpi { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.75rem; margin-bottom: 1rem; }
+@media (max-width: 992px) {
+  .ledger-kpi { grid-template-columns: 1fr 1fr; }
+}
 .pos-actions { display: grid; grid-template-columns: 1fr 1.35fr; gap: 0.65rem; margin-top: auto; }
 .qty-cell { display: flex; align-items: center; gap: 0.3rem; }
 .qty-cell button { width: 28px; height: 28px; padding: 0; display: grid; place-items: center; border-radius: 8px; }

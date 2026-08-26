@@ -1,6 +1,6 @@
-import { axiosClient } from './axiosClient'
+import { axiosClient, downloadResponse } from './axiosClient'
 import { cleanParams } from '../utils/query'
-import type { CreateRepairJobRequest, PagedQuery, PagedResponse, RepairJob, UpdateRepairJobRequest } from '../types'
+import type { CollectRepairPaymentRequest, CreateRepairJobRequest, PagedQuery, PagedResponse, RepairJob, UpdateRepairJobRequest } from '../types'
 
 export const repairApi = {
   list: async (query: PagedQuery) =>
@@ -9,4 +9,10 @@ export const repairApi = {
   create: async (body: CreateRepairJobRequest) => (await axiosClient.post<RepairJob>('/repairs', body)).data,
   update: async (id: number, body: UpdateRepairJobRequest) =>
     (await axiosClient.put<RepairJob>(`/repairs/${id}`, body)).data,
+  pay: async (id: number, body: CollectRepairPaymentRequest) =>
+    (await axiosClient.post<RepairJob>(`/repairs/${id}/payments`, body)).data,
+  pdf: async (id: number) => {
+    const res = await axiosClient.get<Blob>(`/repairs/${id}/pdf`, { responseType: 'blob' })
+    await downloadResponse(res, `repair-${id}.pdf`)
+  },
 }

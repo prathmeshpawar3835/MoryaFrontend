@@ -85,6 +85,10 @@ export const LedgerTransactionType = {
   ReferralReversal: 8,
   ExchangeAdjustment: 9,
   Buyback: 10,
+  RepairCharge: 11,
+  RepairPayment: 12,
+  PolishCharge: 13,
+  PolishPayment: 14,
 } as const
 export type LedgerTransactionType = number
 

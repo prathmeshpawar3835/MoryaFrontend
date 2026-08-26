@@ -20,6 +20,7 @@ import { toastApiError } from '../../utils/errors'
 import { LEDGER_TYPE_LABELS, PAYMENT_LABELS, REFERRAL_STATUS_LABELS } from '../../constants/labels'
 import { PaymentMode } from '../../types'
 import type { z } from 'zod'
+import { ReceiptView } from '../../components/print/ReceiptView'
 
 type Form = z.infer<typeof customerSchema>
 
@@ -86,7 +87,7 @@ export function CustomersPage() {
             setSearch(v)
             setPage(1)
           }}
-          placeholder="Search by customer name or mobile number…"
+          placeholder="Search by name, mobile, or customer code…"
         />
         <StoreSelector />
       </div>
@@ -94,7 +95,7 @@ export function CustomersPage() {
       <DataTable
         loading={q.isLoading}
         error={q.isError ? 'Could not load customer records' : null}
-        columns={['ID', 'Customer Name', 'Mobile Number', 'Home Store', 'Referral Code', 'Pending Due', 'Wallet Balance', 'Status', 'Actions']}
+        columns={['ID', 'Customer Name', 'Code', 'Mobile Number', 'Home Store', 'Referral Code', 'Pending Due', 'Wallet Balance', 'Status', 'Actions']}
         page={q.data?.pageNumber}
         totalPages={q.data?.totalPages}
         onPage={setPage}
@@ -106,6 +107,9 @@ export function CustomersPage() {
               <Link to={`/customers/${c.id}`} className="fw-bold text-navy-900 text-decoration-none">
                 {c.name}
               </Link>
+            </td>
+            <td>
+              <span className="badge bg-navy text-white font-monospace">{c.customerCode || '—'}</span>
             </td>
             <td>
               <span className="font-monospace">{c.mobileNumber}</span>
@@ -286,7 +290,7 @@ export function CustomerProfilePage() {
     <>
       <PageHeader
         title={c.name}
-        subtitle={`Mobile: ${c.mobileNumber} · Customer ID: #${c.id}`}
+        subtitle={`Code ${c.customerCode || '—'} · Mobile: ${c.mobileNumber}`}
         actions={
           <div className="page-header-actions">
             <Link className="btn btn-gold" to={`/customers/${c.id}/ledger`}>
@@ -317,6 +321,13 @@ export function CustomerProfilePage() {
           <strong className="text-success">
             <CurrencyDisplay value={c.walletBalance} />
           </strong>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header">
+            <span>Customer Code</span>
+            <div className="kpi-icon text-navy-900 bg-light"><i className="bi bi-hash" /></div>
+          </div>
+          <strong className="font-monospace">{c.customerCode || '—'}</strong>
         </div>
         <div className="kpi">
           <div className="kpi-header">
@@ -354,6 +365,10 @@ export function CustomerProfilePage() {
               <tr>
                 <th className="text-muted" style={{ width: '30%' }}>Registered Store</th>
                 <td className="fw-bold">{c.storeName}</td>
+              </tr>
+              <tr>
+                <th className="text-muted">Customer Code</th>
+                <td className="font-monospace fw-bold">{c.customerCode || '—'}</td>
               </tr>
               <tr>
                 <th className="text-muted">Primary Mobile</th>
@@ -445,11 +460,22 @@ export function CustomerLedgerPage() {
   const [amount, setAmount] = useState(0)
   const [mode, setMode] = useState(PaymentMode.Cash as number)
   const [ref, setRef] = useState('')
+  const [receiptId, setReceiptId] = useState<number | null>(null)
 
   const customer = useQuery({ queryKey: queryKeys.customer(customerId), queryFn: () => customerApi.get(customerId) })
   const ledger = useQuery({
     queryKey: queryKeys.customerLedger(customerId, { page }),
     queryFn: () => customerApi.ledger(customerId, { pageNumber: page, pageSize: 30 }),
+  })
+  const summary = useQuery({
+    queryKey: queryKeys.customerLedgerSummary(customerId),
+    queryFn: () => customerApi.ledgerSummary(customerId),
+    enabled: customerId > 0,
+  })
+  const receipt = useQuery({
+    queryKey: ['customers', customerId, 'ledger-receipt', receiptId],
+    queryFn: () => customerApi.ledgerReceipt(customerId, receiptId!),
+    enabled: receiptId != null,
   })
 
   const pay = useMutation({
@@ -476,7 +502,7 @@ export function CustomerLedgerPage() {
     <>
       <PageHeader
         title={`Account Ledger · ${customer.data?.name ?? ''}`}
-        subtitle={`Current Outstanding Due: ${formatMoney(customer.data?.outstandingBalance ?? 0)}`}
+        subtitle={`${customer.data?.customerCode || ''} · Current Outstanding: ${formatMoney(customer.data?.outstandingBalance ?? 0)}`}
         actions={
           <div className="page-header-actions">
             <button className="btn btn-gold" type="button" onClick={() => setPayOpen(true)}>
@@ -492,9 +518,28 @@ export function CustomerLedgerPage() {
         }
       />
 
+      <div className="ledger-kpi">
+        <div className="kpi">
+          <div className="kpi-header"><span>Opening Balance</span></div>
+          <strong>{formatMoney(summary.data?.openingBalance ?? 0)}</strong>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Total Debit</span></div>
+          <strong className="text-danger">{formatMoney(summary.data?.totalDebit ?? 0)}</strong>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Total Credit</span></div>
+          <strong className="text-success">{formatMoney(summary.data?.totalCredit ?? 0)}</strong>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header"><span>Outstanding / Credit Balance</span></div>
+          <strong>{formatMoney(summary.data?.currentBalance ?? customer.data?.outstandingBalance ?? 0)}</strong>
+        </div>
+      </div>
+
       <DataTable
         loading={ledger.isLoading}
-        columns={['Transaction Date', 'Type', 'Description / Reference', 'Debit (+)', 'Credit (-)', 'Net Balance', 'Ref Code']}
+        columns={['Date', 'Transaction', 'Reference', 'Debit', 'Credit', 'Balance']}
         page={ledger.data?.pageNumber}
         totalPages={ledger.data?.totalPages}
         onPage={setPage}
@@ -503,18 +548,58 @@ export function CustomerLedgerPage() {
           <tr key={e.id}>
             <td className="small text-muted">{formatDateTime(e.transactionDate)}</td>
             <td>
-              <span className="badge bg-light text-dark border">
-                {LEDGER_TYPE_LABELS[e.transactionType] ?? e.transactionType}
-              </span>
+              <div className="fw-semibold">{LEDGER_TYPE_LABELS[e.transactionType] ?? e.transactionType}</div>
+              <div className="small text-muted">{e.description}</div>
+              <button type="button" className="btn btn-link btn-sm px-0" onClick={() => setReceiptId(e.id)}>
+                View Receipt
+              </button>
             </td>
-            <td>{e.description}</td>
+            <td className="small text-muted font-monospace">{e.referenceNumber || '—'}</td>
             <td className="fw-semibold text-danger">{e.debit ? formatMoney(e.debit) : '—'}</td>
             <td className="fw-semibold text-success">{e.credit ? formatMoney(e.credit) : '—'}</td>
             <td className="fw-bold text-navy-900">{formatMoney(e.balance)}</td>
-            <td className="small text-muted font-monospace">{e.referenceNumber || '—'}</td>
           </tr>
         ))}
       </DataTable>
+
+      <div className="card-panel mt-3">
+        <div className="d-flex flex-wrap gap-4 small">
+          <div>Total Debit: <strong>{formatMoney(summary.data?.totalDebit ?? 0)}</strong></div>
+          <div>Total Credit: <strong>{formatMoney(summary.data?.totalCredit ?? 0)}</strong></div>
+          <div>Outstanding/Credit Balance: <strong>{formatMoney(summary.data?.currentBalance ?? 0)}</strong></div>
+        </div>
+      </div>
+
+      <Modal open={receiptId != null} title="Transaction Receipt" onClose={() => setReceiptId(null)} wide>
+        {receipt.data ? (
+          <>
+            <div className="print-toolbar">
+              <button className="btn btn-outline-secondary btn-sm" type="button" onClick={() => window.print()}>Print</button>
+              <button className="btn btn-outline-secondary btn-sm" type="button" onClick={() => void customerApi.ledgerReceiptPdf(customerId, receiptId!)}>Download PDF</button>
+            </div>
+            <ReceiptView
+              shopName={receipt.data.shopName}
+              title={receipt.data.transactionType}
+              fields={[
+                { label: 'Store', value: receipt.data.storeName },
+                { label: 'Store contact', value: receipt.data.storeContact || '—' },
+                { label: 'Customer', value: receipt.data.customerName },
+                { label: 'Customer code', value: receipt.data.customerCode },
+                { label: 'Mobile', value: receipt.data.mobileNumber },
+                { label: 'Transaction number', value: receipt.data.transactionNumber },
+                { label: 'Date and time', value: formatDateTime(receipt.data.transactionDate) },
+                { label: 'Transaction type', value: receipt.data.transactionType },
+                { label: 'Amount', value: formatMoney(receipt.data.amount) },
+                { label: 'Payment mode', value: receipt.data.paymentMode || '—' },
+                { label: 'Reference number', value: receipt.data.referenceNumber || '—' },
+                { label: 'Received by', value: receipt.data.receivedBy || '—' },
+              ]}
+            />
+          </>
+        ) : (
+          <div className="text-muted">Loading receipt…</div>
+        )}
+      </Modal>
 
       {/* Receive Payment Modal */}
       <Modal open={payOpen} title="Receive Customer Due Payment" onClose={() => setPayOpen(false)}>

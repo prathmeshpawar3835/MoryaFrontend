@@ -6,6 +6,8 @@ import type {
   CustomerHistory,
   CustomerPaymentRequest,
   LedgerEntry,
+  LedgerReceipt,
+  LedgerSummary,
   PagedQuery,
   PagedResponse,
   Payment,
@@ -28,6 +30,14 @@ export const customerApi = {
   history: async (id: number) => (await axiosClient.get<CustomerHistory>(`/customers/${id}/history`)).data,
   ledger: async (id: number, query: PagedQuery) =>
     (await axiosClient.get<PagedResponse<LedgerEntry>>(`/customers/${id}/ledger`, { params: cleanParams({ ...query }) })).data,
+  ledgerSummary: async (id: number) =>
+    (await axiosClient.get<LedgerSummary>(`/customers/${id}/ledger/summary`)).data,
+  ledgerReceipt: async (id: number, entryId: number) =>
+    (await axiosClient.get<LedgerReceipt>(`/customers/${id}/ledger/${entryId}/receipt`)).data,
+  ledgerReceiptPdf: async (id: number, entryId: number) => {
+    const res = await axiosClient.get<Blob>(`/customers/${id}/ledger/${entryId}/receipt/pdf`, { responseType: 'blob' })
+    await downloadResponse(res, `receipt-${entryId}.pdf`)
+  },
   ledgerPdf: async (id: number) => {
     const res = await axiosClient.get<Blob>(`/customers/${id}/ledger/pdf`, { responseType: 'blob' })
     await downloadResponse(res, `ledger-${id}.pdf`)

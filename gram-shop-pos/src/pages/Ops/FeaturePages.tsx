@@ -16,8 +16,8 @@ import { Modal } from '../../components/common/Modal'
 import { formatDateTime, formatMoney } from '../../utils/format'
 import { toastApiError } from '../../utils/errors'
 import { ITEM_STATUS_LABELS, REPAIR_STATUS_LABELS, REPAIR_TYPE_LABELS } from '../../constants/labels'
-import { DiscountKind, OfferCategory, RepairJobStatus, RepairJobType } from '../../types'
-import type { StoreDiscount } from '../../types'
+import { DiscountKind, OfferCategory, PaymentMode, RepairJobStatus, RepairJobType } from '../../types'
+import type { RepairJob, StoreDiscount } from '../../types'
 
 export function CustomerLedgerSearchPage() {
   const navigate = useNavigate()
@@ -368,6 +368,12 @@ export function RepairsPage() {
   const [mobile, setMobile] = useState('')
   const [jobType, setJobType] = useState<number>(RepairJobType.Repair)
   const [notes, setNotes] = useState('')
+  const [estimated, setEstimated] = useState(0)
+  const [paidNow, setPaidNow] = useState(0)
+  const [payJob, setPayJob] = useState<RepairJob | null>(null)
+  const [payAmount, setPayAmount] = useState(0)
+  const [payMode, setPayMode] = useState(PaymentMode.Cash)
+  const [payRef, setPayRef] = useState('')
   const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined }
   const q = useQuery({ queryKey: queryKeys.repairs(query), queryFn: () => repairApi.list(query) })
   const bills = useQuery({
@@ -393,6 +399,9 @@ export function RepairsPage() {
         productName,
         jobType,
         notes,
+        estimatedAmount: estimated,
+        paidAmount: paidNow,
+        paymentMode: paidNow > 0 ? payMode : undefined,
       }),
     onSuccess: async () => {
       toast.success('Job recorded')
@@ -410,17 +419,21 @@ export function RepairsPage() {
         actions={<button className="btn btn-gold" type="button" onClick={() => setOpen(true)}>New job</button>}
       />
       <SearchBox value={search} onChange={(v) => { setSearch(v); setPage(1) }} placeholder="Mobile, invoice, job number, product" />
-      <DataTable loading={q.isLoading} columns={['Job', 'Customer', 'Product', 'Type', 'Status', 'Received', '']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={setPage}>
+      <DataTable loading={q.isLoading} columns={['Job', 'Customer', 'Product', 'Type', 'Amount', 'Paid', 'Due', 'Status', 'Received', '']} page={q.data?.pageNumber} totalPages={q.data?.totalPages} onPage={setPage}>
         {q.data?.items.map((j) => (
           <tr key={j.id}>
             <td className="font-monospace fw-bold">{j.jobNumber}</td>
-            <td>{j.customerName}<div className="small text-muted">{j.mobileNumber}</div></td>
+            <td>{j.customerName}<div className="small text-muted">{j.mobileNumber}{j.customerCode ? ` · ${j.customerCode}` : ''}</div></td>
             <td>{j.productName}</td>
             <td>{REPAIR_TYPE_LABELS[j.jobType]}</td>
+            <td>{formatMoney(j.finalAmount || j.estimatedAmount)}</td>
+            <td>{formatMoney(j.paidAmount)}</td>
+            <td className={j.dueAmount > 0 ? 'text-danger fw-bold' : 'text-success'}>{formatMoney(j.dueAmount)}</td>
             <td>{REPAIR_STATUS_LABELS[j.status]}</td>
             <td className="small">{formatDateTime(j.receivedDate)}</td>
             <td>
-              {j.status < RepairJobStatus.Delivered ? (
+              <div className="d-flex gap-1 flex-wrap">
+                {j.status < RepairJobStatus.Delivered ? (
                 <select
                   className="form-select form-select-sm"
                   value={j.status}
@@ -433,9 +446,14 @@ export function RepairsPage() {
                   <option value={3}>Ready</option>
                   <option value={4}>Delivered</option>
                 </select>
-              ) : (
-                'Delivered'
-              )}
+                ) : (
+                  'Delivered'
+                )}
+                {j.dueAmount > 0 ? (
+                  <button className="btn btn-sm btn-gold" type="button" onClick={() => { setPayJob(j); setPayAmount(j.dueAmount) }}>Pay</button>
+                ) : null}
+                <button className="btn btn-sm btn-outline-secondary" type="button" onClick={() => void repairApi.pdf(j.id)}>Receipt</button>
+              </div>
             </td>
           </tr>
         ))}
@@ -486,9 +504,62 @@ export function RepairsPage() {
         <FormField label="Notes">
           <input className="form-control" value={notes} onChange={(e) => setNotes(e.target.value)} />
         </FormField>
+        <div className="row g-2">
+          <div className="col-md-4">
+            <FormField label="Repair / polish amount">
+              <input className="form-control" type="number" min={0} value={estimated || ''} onChange={(e) => setEstimated(Number(e.target.value))} />
+            </FormField>
+          </div>
+          <div className="col-md-4">
+            <FormField label="Paid now">
+              <input className="form-control" type="number" min={0} value={paidNow || ''} onChange={(e) => setPaidNow(Number(e.target.value))} />
+            </FormField>
+          </div>
+          <div className="col-md-4">
+            <FormField label="Payment mode">
+              <select className="form-select" value={payMode} onChange={(e) => setPayMode(Number(e.target.value))}>
+                <option value={PaymentMode.Cash}>Cash</option>
+                <option value={PaymentMode.Upi}>UPI</option>
+                <option value={PaymentMode.Card}>Card</option>
+              </select>
+            </FormField>
+          </div>
+        </div>
         <button className="btn btn-gold" type="button" disabled={create.isPending || !customerName || !mobile || !productName} onClick={() => create.mutate()}>
           Save job
         </button>
+      </Modal>
+      <Modal open={!!payJob} title={`Collect ${payJob ? REPAIR_TYPE_LABELS[payJob.jobType] : ''} payment`} onClose={() => setPayJob(null)}>
+        {payJob ? (
+          <>
+            <p className="small mb-2">{payJob.customerName} · {payJob.jobNumber}</p>
+            <p className="mb-2">Amount: <strong>{formatMoney(payJob.finalAmount || payJob.estimatedAmount)}</strong> · Paid: {formatMoney(payJob.paidAmount)} · Due: <strong className="text-danger">{formatMoney(payJob.dueAmount)}</strong></p>
+            <FormField label="Amount">
+              <input className="form-control" type="number" min={0} value={payAmount} onChange={(e) => setPayAmount(Number(e.target.value))} />
+            </FormField>
+            <FormField label="Mode">
+              <select className="form-select" value={payMode} onChange={(e) => setPayMode(Number(e.target.value))}>
+                <option value={PaymentMode.Cash}>Cash</option>
+                <option value={PaymentMode.Upi}>UPI</option>
+                <option value={PaymentMode.Card}>Card</option>
+              </select>
+            </FormField>
+            <FormField label="Reference">
+              <input className="form-control" value={payRef} onChange={(e) => setPayRef(e.target.value)} />
+            </FormField>
+            <button
+              className="btn btn-gold"
+              type="button"
+              onClick={() =>
+                repairApi.pay(payJob.id, { amount: payAmount, paymentMode: payMode, referenceNumber: payRef || undefined })
+                  .then(() => { toast.success('Payment recorded'); setPayJob(null); void qc.invalidateQueries({ queryKey: ['repairs'] }) })
+                  .catch((err) => toastApiError(err, 'Payment failed'))
+              }
+            >
+              Save payment
+            </button>
+          </>
+        ) : null}
       </Modal>
     </>
   )

@@ -1,9 +1,16 @@
 import { axiosClient } from './axiosClient'
 import type { CreateBillRequest, HeldBill, HeldBillRequest, Bill, SalesPersonOption } from '../types'
 
+export interface PosBillingRules {
+  returnDeductionPercent: number
+  exchangeDeductionPercent: number
+  buybackDeductionPercent: number
+}
+
 export const posApi = {
   salesPersons: async (storeId: number) =>
     (await axiosClient.get<SalesPersonOption[]>('/pos/sales-persons', { params: { storeId } })).data,
+  billingRules: async () => (await axiosClient.get<PosBillingRules>('/pos/billing-rules')).data,
   createBill: async (body: CreateBillRequest) => (await axiosClient.post<Bill>('/pos/bills', body)).data,
   hold: async (body: HeldBillRequest) => (await axiosClient.post<HeldBill>('/pos/held-bills', body)).data,
   heldList: async (storeId?: number | null) =>

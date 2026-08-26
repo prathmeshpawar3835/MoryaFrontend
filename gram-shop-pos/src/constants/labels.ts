@@ -48,6 +48,10 @@ export const LEDGER_TYPE_LABELS: Record<number, string> = {
   8: 'Referral reversal',
   9: 'Exchange adjustment',
   10: 'Buyback',
+  11: 'Repair charge',
+  12: 'Repair Payment',
+  13: 'Polish charge',
+  14: 'Polish Payment',
 }
 
 export const RETURN_KIND_LABELS: Record<number, string> = {

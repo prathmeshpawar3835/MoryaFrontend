@@ -415,10 +415,40 @@ export interface LedgerEntry {
   transactionDate: string
   transactionType: LedgerTransactionType
   description: string
+  referenceId?: number | null
   referenceNumber?: string | null
   debit: number
   credit: number
   balance: number
+}
+
+export interface LedgerSummary {
+  openingBalance: number
+  totalDebit: number
+  totalCredit: number
+  currentBalance: number
+}
+
+export interface LedgerReceipt {
+  entryId: number
+  shopName: string
+  storeName: string
+  storeAddress?: string | null
+  storeContact?: string | null
+  customerName: string
+  customerCode: string
+  mobileNumber: string
+  transactionNumber: string
+  transactionDate: string
+  transactionType: string
+  amount: number
+  debit: number
+  credit: number
+  balance: number
+  paymentMode?: string | null
+  referenceNumber?: string | null
+  receivedBy: string
+  description: string
 }
 
 export interface CustomerPaymentRequest {
@@ -561,6 +591,13 @@ export interface RepairJob {
   completedDate?: string | null
   deliveredDate?: string | null
   notes?: string | null
+  customerCode?: string | null
+  estimatedAmount: number
+  finalAmount: number
+  paidAmount: number
+  dueAmount: number
+  paymentMode?: number | null
+  paymentReference?: string | null
   history: RepairJobHistory[]
 }
 
@@ -585,12 +622,24 @@ export interface CreateRepairJobRequest {
   jobType: number
   expectedDate?: string | null
   notes?: string
+  estimatedAmount?: number
+  finalAmount?: number
+  paidAmount?: number
+  paymentMode?: number
+  paymentReference?: string
 }
 
 export interface UpdateRepairJobRequest {
   status: number
   expectedDate?: string | null
   notes?: string
+  finalAmount?: number
+}
+
+export interface CollectRepairPaymentRequest {
+  amount: number
+  paymentMode: number
+  referenceNumber?: string
 }
 
 export interface SalesPersonOption {

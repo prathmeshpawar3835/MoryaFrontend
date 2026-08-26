@@ -25,6 +25,7 @@ export const queryKeys = {
   customerSearch: (query: string, storeId?: number | null) => ['customers', 'search', query, storeId ?? 'any'] as const,
   customerHistory: (id: number) => ['customers', id, 'history'] as const,
   customerLedger: (id: number, q: unknown) => ['customers', id, 'ledger', q] as const,
+  customerLedgerSummary: (id: number) => ['customers', id, 'ledger-summary'] as const,
   customerPayments: (id: number) => ['customers', id, 'payments'] as const,
   customerWallet: (id: number) => ['customers', id, 'wallet'] as const,
   referrals: (q: unknown) => ['referrals', q] as const,
