@@ -206,6 +206,9 @@ export interface Settings {
   rewardTrigger: RewardTrigger
   referralStoreWise: boolean
   birthdayDiscountPercent?: number
+  returnDeductionPercent?: number
+  exchangeDeductionPercent?: number
+  buybackDeductionPercent?: number
   whatsAppEnabled?: boolean
   whatsAppPhoneNumberId?: string | null
   whatsAppAccessToken?: string | null

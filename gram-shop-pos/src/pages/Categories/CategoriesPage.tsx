@@ -3,6 +3,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
+import { toastApiError } from '../../utils/errors'
 import { categoryApi } from '../../api/categoryApi'
 import { queryKeys } from '../../api/queryKeys'
 import { categorySchema } from '../../validators/schemas'
@@ -50,7 +51,7 @@ export function CategoriesPage() {
       await qc.invalidateQueries({ queryKey: queryKeys.categories })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to save category')
+      toastApiError(err, 'Failed to save category')
     },
   })
 

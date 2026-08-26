@@ -5,6 +5,7 @@ import { loginSchema } from '../../validators/schemas'
 import { useAuth } from '../../context/AuthContext'
 import { FormField } from '../../components/common/FormField'
 import toast from 'react-hot-toast'
+import { toastApiError } from '../../utils/errors'
 import type { z } from 'zod'
 
 type Form = z.infer<typeof loginSchema>
@@ -28,7 +29,7 @@ export function LoginPage() {
       const to = (location.state as { from?: string } | null)?.from || '/dashboard'
       navigate(to, { replace: true })
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Invalid credentials')
+      toastApiError(err, 'Invalid credentials')
     }
   })
 

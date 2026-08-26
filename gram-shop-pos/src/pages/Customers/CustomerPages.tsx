@@ -16,6 +16,7 @@ import { DataTable } from '../../components/tables/DataTable'
 import { Modal } from '../../components/common/Modal'
 import { FormField } from '../../components/common/FormField'
 import { formatDateTime, formatMoney } from '../../utils/format'
+import { toastApiError } from '../../utils/errors'
 import { LEDGER_TYPE_LABELS, PAYMENT_LABELS, REFERRAL_STATUS_LABELS } from '../../constants/labels'
 import { PaymentMode } from '../../types'
 import type { z } from 'zod'
@@ -62,7 +63,7 @@ export function CustomersPage() {
       await qc.invalidateQueries({ queryKey: ['customers'] })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to create customer')
+      toastApiError(err, 'Failed to create customer')
     },
   })
 
@@ -467,7 +468,7 @@ export function CustomerLedgerPage() {
       await qc.invalidateQueries({ queryKey: ['customers', customerId] })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to record payment')
+      toastApiError(err, 'Failed to record payment')
     },
   })
 

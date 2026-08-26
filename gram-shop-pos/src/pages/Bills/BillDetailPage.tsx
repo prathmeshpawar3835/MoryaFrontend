@@ -6,6 +6,7 @@ import { PageHeader, ErrorState, PageLoader } from '../../components/common/Feed
 import { InvoiceView } from '../../components/print/InvoiceView'
 import { ConfirmDialog } from '../../components/common/Modal'
 import toast from 'react-hot-toast'
+import { toastApiError } from '../../utils/errors'
 
 export function BillDetailPage() {
   const { id } = useParams()
@@ -66,7 +67,7 @@ export function BillDetailPage() {
                     await qc.invalidateQueries({ queryKey: queryKeys.bill(billId) })
                     await qc.invalidateQueries({ queryKey: queryKeys.invoice(billId) })
                   } catch (err: any) {
-                    toast.error(err?.response?.data?.message || 'Failed to cancel bill')
+                    toastApiError(err, 'Failed to cancel bill')
                   }
                 }}
               >

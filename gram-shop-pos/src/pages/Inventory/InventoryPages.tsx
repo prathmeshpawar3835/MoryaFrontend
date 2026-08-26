@@ -13,6 +13,7 @@ import { StoreSelector } from '../../components/common/StoreSelector'
 import { DataTable } from '../../components/tables/DataTable'
 import { FormField } from '../../components/common/FormField'
 import { formatDateTime } from '../../utils/format'
+import { toastApiError } from '../../utils/errors'
 import { MOVEMENT_LABELS } from '../../constants/labels'
 import { useDebounce } from '../../hooks/useDebounce'
 
@@ -210,7 +211,7 @@ export function StockInPage() {
       await qc.invalidateQueries({ queryKey: ['purchases'] })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to record stock inward')
+      toastApiError(err, 'Failed to record stock inward')
     },
   })
 
@@ -393,7 +394,7 @@ export function StockAdjustPage() {
       await qc.invalidateQueries({ queryKey: ['inventory'] })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to record adjustment')
+      toastApiError(err, 'Failed to record adjustment')
     },
   })
 
@@ -530,7 +531,7 @@ export function StockTransferPage() {
       await qc.invalidateQueries({ queryKey: ['inventory'] })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to complete store transfer')
+      toastApiError(err, 'Failed to complete store transfer')
     },
   })
 

@@ -6,6 +6,7 @@ import { forgotPasswordSchema } from '../../validators/schemas'
 import { authApi } from '../../api/authApi'
 import { FormField } from '../../components/common/FormField'
 import toast from 'react-hot-toast'
+import { toastApiError } from '../../utils/errors'
 import type { z } from 'zod'
 
 type Form = z.infer<typeof forgotPasswordSchema>
@@ -23,7 +24,7 @@ export function ForgotPasswordPage() {
       toast.success(result.message || 'Reset instructions generated')
       if (result.developmentResetToken) setToken(result.developmentResetToken)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to request password reset')
+      toastApiError(err, 'Failed to request password reset')
     }
   })
 

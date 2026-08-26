@@ -5,6 +5,7 @@ import { resetPasswordSchema } from '../../validators/schemas'
 import { authApi } from '../../api/authApi'
 import { FormField } from '../../components/common/FormField'
 import toast from 'react-hot-toast'
+import { toastApiError } from '../../utils/errors'
 import type { z } from 'zod'
 
 type Form = z.infer<typeof resetPasswordSchema>
@@ -33,7 +34,7 @@ export function ResetPasswordPage() {
       toast.success('Password reset successfully. Please sign in.')
       navigate('/login')
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to reset password')
+      toastApiError(err, 'Failed to reset password')
     }
   })
 

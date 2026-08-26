@@ -14,6 +14,7 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { useHotkeys } from '../../hooks/useHotkeys'
 import { calculateBill } from '../../utils/billCalc'
 import { formatMoney } from '../../utils/format'
+import { toastApiError } from '../../utils/errors'
 import { DiscountKind, PaymentMode, ReturnKind, RewardType } from '../../types'
 import type { Bill, Customer, Product, StoreDiscount } from '../../types'
 import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
@@ -302,7 +303,7 @@ export function POSPage() {
       navigate('/pos/held')
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to hold bill')
+      toastApiError(err, 'Failed to hold bill')
     },
   })
 
@@ -343,7 +344,7 @@ export function POSPage() {
       if (bill.customerId) await qc.invalidateQueries({ queryKey: queryKeys.customerWallet(bill.customerId) })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to complete bill')
+      toastApiError(err, 'Failed to complete bill')
     },
   })
 
@@ -364,7 +365,7 @@ export function POSPage() {
       toast.success(`Customer ${created.name} created and selected`)
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Could not create customer')
+      toastApiError(err, 'Could not create customer')
     },
   })
 

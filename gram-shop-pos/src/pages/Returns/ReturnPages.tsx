@@ -12,6 +12,7 @@ import { PageHeader, SearchBox, CurrencyDisplay } from '../../components/common/
 import { DataTable } from '../../components/tables/DataTable'
 import { FormField } from '../../components/common/FormField'
 import { formatDateTime, formatMoney } from '../../utils/format'
+import { toastApiError } from '../../utils/errors'
 import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
 import { PaymentMode } from '../../types'
 import type { Bill, Product } from '../../types'
@@ -139,7 +140,7 @@ export function ReturnCreatePage() {
       navigate('/returns')
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to generate return')
+      toastApiError(err, 'Failed to generate return')
     },
   })
 
@@ -358,7 +359,7 @@ export function ExchangePage() {
       navigate(`/bills/${r.newBill.id}`)
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to process exchange')
+      toastApiError(err, 'Failed to process exchange')
     },
   })
 
@@ -657,7 +658,7 @@ export function BuybackPage() {
       navigate('/returns')
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to generate buyback')
+      toastApiError(err, 'Failed to generate buyback')
     },
   })
 

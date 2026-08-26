@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
+import { toastApiError } from '../../utils/errors'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { authApi } from '../../api/authApi'
@@ -75,7 +76,7 @@ export function TopNav({ onMenu }: { onMenu: () => void }) {
       setPwdOpen(false)
       form.reset()
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to change password')
+      toastApiError(err, 'Failed to change password')
     }
   })
 

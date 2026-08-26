@@ -13,6 +13,7 @@ import { DataTable } from '../../components/tables/DataTable'
 import { Modal } from '../../components/common/Modal'
 import { FormField } from '../../components/common/FormField'
 import { formatDateTime } from '../../utils/format'
+import { toastApiError } from '../../utils/errors'
 import { useStore } from '../../context/StoreContext'
 import type { Settings, Store, User } from '../../types'
 import type { z } from 'zod'
@@ -62,7 +63,7 @@ export function StoresSettingsPage() {
       await store.refreshStores()
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to save store')
+      toastApiError(err, 'Failed to save store')
     },
   })
 
@@ -249,7 +250,7 @@ export function UsersSettingsPage() {
       await qc.invalidateQueries({ queryKey: ['users'] })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to save user account')
+      toastApiError(err, 'Failed to save user account')
     },
   })
 
@@ -440,9 +441,7 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
       toast.success('Configuration parameters updated successfully')
       await qc.invalidateQueries({ queryKey: queryKeys.settings })
     },
-    onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to save configuration')
-    },
+    onError: (err) => toastApiError(err, 'Failed to save configuration'),
   })
 
   if (!data) return <PageHeader title="Settings Configuration" />
@@ -537,6 +536,48 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
                 </label>
               </div>
             </div>
+          </div>
+          <div className="form-section-title mt-4">
+            <i className="bi bi-arrow-repeat text-gold" /> Return / Exchange / Buyback deduction
+          </div>
+          <p className="small text-muted mb-3">
+            These percentages are set by admin and applied automatically. Counter staff cannot type a custom deduction amount.
+            Credit given to the customer = original item value minus this deduction.
+          </p>
+          <div className="form-grid">
+            <FormField label="Return deduction %" hint="Example: 10% means a ₹5,150 return credits ₹4,635.">
+              <input
+                className="form-control"
+                type="number"
+                min={0}
+                max={100}
+                step="any"
+                value={data.returnDeductionPercent ?? 0}
+                onChange={(e) => set('returnDeductionPercent', Number(e.target.value))}
+              />
+            </FormField>
+            <FormField label="Exchange deduction %" hint="Applied to the original item value when exchanging on a new bill.">
+              <input
+                className="form-control"
+                type="number"
+                min={0}
+                max={100}
+                step="any"
+                value={data.exchangeDeductionPercent ?? 0}
+                onChange={(e) => set('exchangeDeductionPercent', Number(e.target.value))}
+              />
+            </FormField>
+            <FormField label="Buyback deduction %" hint="Counter buyback value is calculated from this setting, not entered by staff.">
+              <input
+                className="form-control"
+                type="number"
+                min={0}
+                max={100}
+                step="any"
+                value={data.buybackDeductionPercent ?? 0}
+                onChange={(e) => set('buybackDeductionPercent', Number(e.target.value))}
+              />
+            </FormField>
           </div>
         </>
       ) : null}

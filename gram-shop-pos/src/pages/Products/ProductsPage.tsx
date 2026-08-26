@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { toastApiError } from '../../utils/errors'
 import { productApi } from '../../api/productApi'
 import { categoryApi } from '../../api/categoryApi'
 import { queryKeys } from '../../api/queryKeys'
@@ -54,7 +55,7 @@ export function ProductsPage() {
       await qc.invalidateQueries({ queryKey: ['products'] })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to change product status')
+      toastApiError(err, 'Failed to change product status')
     },
   })
 

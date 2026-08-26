@@ -14,6 +14,7 @@ import { DataTable } from '../../components/tables/DataTable'
 import { FormField } from '../../components/common/FormField'
 import { Modal } from '../../components/common/Modal'
 import { formatDateTime, formatMoney } from '../../utils/format'
+import { toastApiError } from '../../utils/errors'
 import { ITEM_STATUS_LABELS, REPAIR_STATUS_LABELS, REPAIR_TYPE_LABELS } from '../../constants/labels'
 import { DiscountKind, OfferCategory, RepairJobStatus, RepairJobType } from '../../types'
 import type { StoreDiscount } from '../../types'
@@ -100,7 +101,7 @@ export function DiscountsPage() {
       setValue(0)
       await qc.invalidateQueries({ queryKey: ['discounts'] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to save discount'),
+    onError: (err: any) => toastApiError(err, 'Failed to save discount'),
   })
 
   return (
@@ -203,7 +204,7 @@ export function BirthdayOffersPage() {
       setOpen(false)
       await qc.invalidateQueries({ queryKey: ['discounts'] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to save birthday offer'),
+    onError: (err: any) => toastApiError(err, 'Failed to save birthday offer'),
   })
 
   return (
@@ -313,7 +314,7 @@ export function SuppliersPage() {
       setName('')
       await qc.invalidateQueries({ queryKey: ['suppliers'] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to save supplier'),
+    onError: (err: any) => toastApiError(err, 'Failed to save supplier'),
   })
 
   return (
@@ -398,7 +399,7 @@ export function RepairsPage() {
       setOpen(false)
       await qc.invalidateQueries({ queryKey: ['repairs'] })
     },
-    onError: (err: any) => toast.error(err?.response?.data?.message || 'Failed to create job'),
+    onError: (err: any) => toastApiError(err, 'Failed to create job'),
   })
 
   return (

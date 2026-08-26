@@ -58,8 +58,16 @@ axiosClient.interceptors.response.use(
 
     const payload = error.response?.data as ApiResponse<unknown> | undefined
     const status = error.response?.status
+    const fieldErrors = (payload?.errors ?? []).filter((x): x is string => typeof x === 'string' && x.trim().length > 0)
+    const rawMessage = payload?.message?.trim()
+    const combined =
+      rawMessage && fieldErrors.length
+        ? rawMessage.toLowerCase() === 'validation failed.'
+          ? fieldErrors.join(' ')
+          : [...new Set([rawMessage, ...fieldErrors])].join(' — ')
+        : rawMessage || fieldErrors.join(' ')
     const message =
-      payload?.message ||
+      combined ||
       (status === 401
         ? 'Your session has expired. Please sign in again.'
         : status === 403
@@ -68,13 +76,15 @@ axiosClient.interceptors.response.use(
             ? 'The requested record was not found.'
             : status === 409
               ? 'This record already exists.'
-              : status === 429
-                ? 'Too many requests. Please wait a moment.'
-                : error.code === 'ECONNABORTED'
-                  ? 'The request timed out. Please try again.'
-                  : error.message === 'Network Error'
-                    ? 'Cannot reach the API. Confirm the backend is running.'
-                    : 'Something went wrong. Please try again.')
+              : status === 422
+                ? 'This action could not be completed. Check the details and try again.'
+                : status === 429
+                  ? 'Too many requests. Please wait a moment.'
+                  : error.code === 'ECONNABORTED'
+                    ? 'The request timed out. Please try again.'
+                    : error.message === 'Network Error'
+                      ? 'Cannot reach the API. Confirm the backend is running.'
+                      : 'Something went wrong. Please try again.')
 
     const onLogin = window.location.pathname.startsWith('/login')
     const hadToken = Boolean(localStorage.getItem(TOKEN_KEY))
@@ -84,8 +94,6 @@ axiosClient.interceptors.response.use(
       localStorage.removeItem('gramshop.user')
       toast.error(message)
       window.location.assign('/login')
-    } else if (!error.config?.skipErrorToast) {
-      toast.error(message)
     }
 
     return Promise.reject(Object.assign(error, { userMessage: message, apiErrors: payload?.errors ?? [] }))

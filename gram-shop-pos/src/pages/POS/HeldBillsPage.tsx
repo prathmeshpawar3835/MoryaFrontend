@@ -7,6 +7,7 @@ import { useStore } from '../../context/StoreContext'
 import { PageHeader } from '../../components/common/Feedback'
 import { DataTable } from '../../components/tables/DataTable'
 import { formatDateTime } from '../../utils/format'
+import { toastApiError } from '../../utils/errors'
 import { ConfirmDialog } from '../../components/common/Modal'
 
 export function HeldBillsPage() {
@@ -23,7 +24,7 @@ export function HeldBillsPage() {
       await qc.invalidateQueries({ queryKey: queryKeys.heldBills(selectedStoreId) })
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to discard held bill')
+      toastApiError(err, 'Failed to discard held bill')
     },
   })
 

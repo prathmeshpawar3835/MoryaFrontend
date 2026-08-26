@@ -101,7 +101,7 @@ export function ProductFormPage() {
       navigate('/products')
     },
     onError: (err: any) => {
-      toast.error(err?.response?.data?.message || 'Failed to save product')
+      toastApiError(err, 'Failed to save product')
     },
   })
 

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { productApi } from '../../api/productApi'
 import { PageHeader } from '../../components/common/Feedback'
 import toast from 'react-hot-toast'
+import { toastApiError } from '../../utils/errors'
 import type { ImportPreviewResponse } from '../../types'
 
 export function ProductImportPage() {
@@ -17,7 +18,7 @@ export function ProductImportPage() {
       setPreview(await productApi.previewImport(file))
       setResult(null)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to parse Excel file')
+      toastApiError(err, 'Failed to parse Excel file')
     } finally {
       setBusy(false)
     }
@@ -33,7 +34,7 @@ export function ProductImportPage() {
       setPreview(null)
       setFile(null)
     } catch (err: any) {
-      toast.error(err?.response?.data?.message || 'Failed to complete import')
+      toastApiError(err, 'Failed to complete import')
     } finally {
       setBusy(false)
     }

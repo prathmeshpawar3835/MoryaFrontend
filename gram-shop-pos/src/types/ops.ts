@@ -246,6 +246,9 @@ export interface ReturnRecord {
   returnDate: string
   customerId?: number | null
   returnAmount: number
+  grossAmount?: number
+  deductionPercent?: number
+  deductionAmount?: number
   reason?: string | null
   returnKind: ReturnKind
   exchangeBillId?: number | null
