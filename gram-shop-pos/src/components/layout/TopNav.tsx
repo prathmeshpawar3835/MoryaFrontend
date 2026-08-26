@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import toast from 'react-hot-toast'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { authApi } from '../../api/authApi'
 import { StoreSelector } from '../common/StoreSelector'
@@ -13,9 +13,49 @@ import { changePasswordSchema } from '../../validators/schemas'
 
 type ChangePasswordForm = z.infer<typeof changePasswordSchema>
 
+const PAGE_TITLES: { match: RegExp; title: string }[] = [
+  { match: /^\/dashboard/, title: 'Dashboard' },
+  { match: /^\/pos\/held/, title: 'Held bills' },
+  { match: /^\/pos/, title: 'Sales entry' },
+  { match: /^\/bills/, title: 'Bills' },
+  { match: /^\/products/, title: 'Products' },
+  { match: /^\/categories/, title: 'Categories' },
+  { match: /^\/inventory/, title: 'Inventory' },
+  { match: /^\/customers/, title: 'Customers' },
+  { match: /^\/referrals/, title: 'Referrals' },
+  { match: /^\/returns/, title: 'Returns' },
+  { match: /^\/repairs/, title: 'Repairs' },
+  { match: /^\/reports\/sales/, title: 'Sales report' },
+  { match: /^\/reports\/product-analytics/, title: 'Product analytics' },
+  { match: /^\/reports\/products/, title: 'Product sales' },
+  { match: /^\/reports\/inventory/, title: 'Inventory report' },
+  { match: /^\/reports\/purchases/, title: 'Purchases report' },
+  { match: /^\/reports\/returns/, title: 'Returns report' },
+  { match: /^\/reports\/customers/, title: 'Customer dues' },
+  { match: /^\/reports\/referrals/, title: 'Referral report' },
+  { match: /^\/reports\/birthdays/, title: 'Birthday report' },
+  { match: /^\/reports\/profit/, title: 'Profit & loss' },
+  { match: /^\/reports/, title: 'Reports' },
+  { match: /^\/settings\/birthday-offers/, title: 'Birthday offers' },
+  { match: /^\/settings\/discounts/, title: 'Store discounts' },
+  { match: /^\/settings\/stores/, title: 'Stores' },
+  { match: /^\/settings\/users/, title: 'Users' },
+  { match: /^\/settings\/billing/, title: 'Billing settings' },
+  { match: /^\/settings\/tax/, title: 'Tax settings' },
+  { match: /^\/settings\/referrals/, title: 'Referral scheme' },
+  { match: /^\/settings\/business/, title: 'Business profile' },
+  { match: /^\/settings\/audit/, title: 'Audit logs' },
+  { match: /^\/settings/, title: 'Settings' },
+]
+
+function pageTitle(pathname: string) {
+  return PAGE_TITLES.find((p) => p.match.test(pathname))?.title ?? 'Gram Shop'
+}
+
 export function TopNav({ onMenu }: { onMenu: () => void }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [pwdOpen, setPwdOpen] = useState(false)
   const [shortcutsOpen, setShortcutsOpen] = useState(false)
   const form = useForm<ChangePasswordForm>({
@@ -52,8 +92,13 @@ export function TopNav({ onMenu }: { onMenu: () => void }) {
         <i className="bi bi-list" />
       </button>
 
+      <div className="topnav-page">
+        <span className="topnav-kicker">Gram Shop</span>
+        <strong>{pageTitle(location.pathname)}</strong>
+      </div>
+
       <div className="topnav-store-badge">
-        <i className="bi bi-shop topnav-store-icon" />
+        <i className="bi bi-geo-alt-fill topnav-store-icon" />
         <StoreSelector />
       </div>
 
@@ -61,19 +106,18 @@ export function TopNav({ onMenu }: { onMenu: () => void }) {
 
       <div className="topnav-actions">
         <Link to="/pos" className="btn-pos-shortcut" title="Open POS Terminal (F10)">
-          <i className="bi bi-cash-stack" />
-          <span>POS Terminal</span>
+          <i className="bi bi-lightning-charge-fill" />
+          <span>New Sale</span>
           <span className="shortcut-pill">F10</span>
         </Link>
 
         <button
           type="button"
-          className="btn btn-sm btn-light border d-none d-md-inline-flex align-items-center gap-1 text-muted"
+          className="topnav-icon-btn d-none d-md-inline-flex"
           onClick={() => setShortcutsOpen(true)}
           title="Keyboard Shortcuts"
         >
           <i className="bi bi-keyboard" />
-          <span className="small">Shortcuts</span>
         </button>
 
         <div className="dropdown">
@@ -89,7 +133,7 @@ export function TopNav({ onMenu }: { onMenu: () => void }) {
               <span className="btn-profile-role">{user?.role || 'Staff'}</span>
             </div>
           </button>
-          <ul className="dropdown-menu dropdown-menu-end shadow-sm border-0 mt-2 p-2" style={{ minWidth: '220px', borderRadius: '12px' }}>
+          <ul className="dropdown-menu dropdown-menu-end app-dropdown mt-2 p-2">
             <li className="px-3 py-2 border-bottom mb-1">
               <div className="fw-bold text-dark">{user?.fullName || user?.userName}</div>
               <small className="text-muted">{user?.email || `@${user?.userName}`}</small>

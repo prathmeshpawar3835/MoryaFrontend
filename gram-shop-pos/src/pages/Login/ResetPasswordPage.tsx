@@ -39,10 +39,6 @@ export function ResetPasswordPage() {
 
   return (
     <form className="stack-form" onSubmit={onSubmit} noValidate>
-      <div className="text-muted small mb-2">
-        Enter your username, the security token, and choose a new password.
-      </div>
-
       <FormField
         label="Username"
         required

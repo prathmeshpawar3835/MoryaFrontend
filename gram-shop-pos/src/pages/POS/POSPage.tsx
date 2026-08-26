@@ -408,19 +408,24 @@ export function POSPage() {
     <div className="pos-app">
       {/* Top POS Header */}
       <header className="pos-top">
-        <Link to="/dashboard" className="btn btn-sm btn-outline-light d-flex align-items-center gap-1" title="Back to Dashboard">
-          <i className="bi bi-arrow-left" />
-          <span className="d-none d-sm-inline">Dashboard</span>
+        <Link to="/dashboard" className="pos-brand" title="Back to Dashboard">
+          <span className="brand-mark">1G</span>
+          <span className="d-none d-sm-flex flex-column lh-1">
+            <strong>Sales entry</strong>
+            <small>Counter billing</small>
+          </span>
         </Link>
 
-        <StoreSelector allowAll={false} />
+        <div className="topnav-store-badge pos-store">
+          <StoreSelector allowAll={false} />
+        </div>
 
         <div className="search-wrapper">
           <i className="bi bi-upc-scan" />
           <input
             ref={searchRef}
             className="form-control"
-            placeholder="Scan barcode or type Name/Code (Press F2 to focus, Enter to add)"
+            placeholder="Scan barcode or search product (F2)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -449,8 +454,8 @@ export function POSPage() {
         <div className="pos-cart">
           {/* Live Product Search Dropdown Popover */}
           {query.trim().length >= 2 && searchQ.data?.length ? (
-            <div className="card shadow-md border-0 mb-3" style={{ borderRadius: '12px', zIndex: 10 }}>
-              <div className="card-header bg-navy text-white d-flex justify-content-between align-items-center py-2 px-3">
+            <div className="pos-search-results">
+              <div className="pos-search-head">
                 <span className="small fw-bold">Search Results ({searchQ.data.length})</span>
                 <span className="small text-warning">Click item or press Enter to add</span>
               </div>
@@ -496,9 +501,9 @@ export function POSPage() {
                 {cart.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center text-muted py-5">
-                      <i className="bi bi-cart3 fs-1 text-slate-300 d-block mb-2" />
-                      <div className="fw-semibold fs-5 text-slate-600">POS Cart is Empty</div>
-                      <small className="text-muted">Use the barcode scanner or type product name/code in the search bar above.</small>
+                      <i className="bi bi-cart3 fs-1 d-block mb-2" />
+                      <div className="fw-semibold fs-5 text-navy-900">Cart is empty</div>
+                      <small className="text-muted">Scan a barcode or search a product name above.</small>
                     </td>
                   </tr>
                 ) : (
@@ -850,7 +855,7 @@ export function POSPage() {
             ) : null}
 
             {customer ? (
-              <div className="border rounded-3 p-2 mt-2 bg-light">
+              <div className="pos-customer-card">
                 <div className="fw-bold text-navy-900">{customer.name}</div>
                 <div className="small text-muted">
                   {customer.mobileNumber} · Code {customer.customerCode || customer.referralCode}

@@ -72,7 +72,20 @@ export default function App() {
       <AuthProvider>
         <StoreProvider>
           <BrowserRouter>
-            <Toaster position="top-right" />
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                className: 'app-toast',
+                duration: 3200,
+                style: {
+                  borderRadius: '14px',
+                  border: '1px solid #e8e4d9',
+                  boxShadow: '0 12px 32px rgba(15, 23, 42, 0.12)',
+                  fontFamily: 'Plus Jakarta Sans, sans-serif',
+                  fontSize: '0.875rem',
+                },
+              }}
+            />
             <Suspense fallback={<PageLoader />}>
               <Routes>
                 <Route element={<AuthLayout />}>

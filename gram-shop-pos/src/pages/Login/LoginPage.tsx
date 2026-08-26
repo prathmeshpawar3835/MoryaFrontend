@@ -82,7 +82,7 @@ export function LoginPage() {
             Signing in…
           </>
         ) : (
-          'Sign In to Counter'
+          'Sign in'
         )}
       </button>
 

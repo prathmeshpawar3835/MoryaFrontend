@@ -29,10 +29,6 @@ export function ForgotPasswordPage() {
 
   return (
     <form className="stack-form" onSubmit={onSubmit} noValidate>
-      <div className="text-muted small mb-2">
-        Enter your registered username below to generate a password reset authorization token.
-      </div>
-
       <FormField
         label="Username"
         required

@@ -52,8 +52,8 @@ function Filters({
   extra?: ReactNode
 }) {
   return (
-    <div className="filter-bar">
-      <SearchBox value={search} onChange={setSearch} placeholder="Filter records…" />
+        <div className="filter-bar">
+          <SearchBox value={search} onChange={setSearch} placeholder="Search reports…" />
       <StoreSelector />
       <select
         className="form-select"
@@ -62,10 +62,10 @@ function Filters({
         onChange={(e) => setPeriod(e.target.value)}
         aria-label="Filter report timeframe"
       >
-        <option value="daily">📅 Daily</option>
-        <option value="weekly">📅 Weekly</option>
-        <option value="monthly">📅 Monthly</option>
-        <option value="custom">📅 Custom</option>
+        <option value="daily">Today</option>
+        <option value="weekly">This week</option>
+        <option value="monthly">This month</option>
+        <option value="custom">Custom range</option>
       </select>
       {period === 'custom' ? <DateRangePicker from={from} to={to} onChange={setRange} /> : null}
       {extra}
@@ -90,11 +90,11 @@ export function SalesReportPage() {
         subtitle="Comprehensive breakdown of store gross sales, bills, GST, and net margins"
         actions={
           <div className="page-header-actions">
-            <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportSalesExcel(f.query)}>
-              <i className="bi bi-file-earmark-excel me-1" /> Excel Export
+            <button className="btn-ghost" type="button" onClick={() => void reportApi.exportSalesExcel(f.query)}>
+              <i className="bi bi-file-earmark-excel" /> Excel
             </button>
-            <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportSalesPdf(f.query)}>
-              <i className="bi bi-file-earmark-pdf me-1" /> PDF Report
+            <button className="btn-ghost" type="button" onClick={() => void reportApi.exportSalesPdf(f.query)}>
+              <i className="bi bi-file-earmark-pdf" /> PDF
             </button>
           </div>
         }
@@ -131,7 +131,7 @@ export function SalesReportPage() {
 
       {d ? (
         <div className="kpi-grid">
-          <div className="kpi">
+          <div className="kpi kpi-gold">
             <div className="kpi-header">
               <span>Gross Sales</span>
               <div className="kpi-icon"><i className="bi bi-currency-rupee" /></div>
@@ -232,8 +232,8 @@ export function ProductSalesReportPage() {
         title="Product-Wise Sales Velocity"
         subtitle="Track bestsellers and identify slow-moving inventory"
         actions={
-          <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportProductSalesExcel(f.query)}>
-            <i className="bi bi-file-earmark-excel me-1" /> Export Excel
+          <button className="btn-ghost" type="button" onClick={() => void reportApi.exportProductSalesExcel(f.query)}>
+            <i className="bi bi-file-earmark-excel" /> Excel
           </button>
         }
       />
@@ -298,11 +298,11 @@ export function InventoryReportPage() {
         subtitle="Current inventory asset values at purchase cost and retail price"
         actions={
           <div className="page-header-actions">
-            <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportInventoryExcel(f.query)}>
-              <i className="bi bi-file-earmark-excel me-1" /> Excel Export
+            <button className="btn-ghost" type="button" onClick={() => void reportApi.exportInventoryExcel(f.query)}>
+              <i className="bi bi-file-earmark-excel" /> Excel
             </button>
-            <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportInventoryPdf(f.query)}>
-              <i className="bi bi-file-earmark-pdf me-1" /> PDF Valuation
+            <button className="btn-ghost" type="button" onClick={() => void reportApi.exportInventoryPdf(f.query)}>
+              <i className="bi bi-file-earmark-pdf" /> PDF
             </button>
           </div>
         }
@@ -450,8 +450,8 @@ export function CustomerDuesReportPage() {
         title="Customer Dues & Aging Analysis"
         subtitle="Audit outstanding credit and payment recovery aging buckets"
         actions={
-          <button className="btn btn-outline-secondary" type="button" onClick={() => void reportApi.exportCustomersExcel(f.query)}>
-            <i className="bi bi-file-earmark-excel me-1" /> Export Excel
+          <button className="btn-ghost" type="button" onClick={() => void reportApi.exportCustomersExcel(f.query)}>
+            <i className="bi bi-file-earmark-excel" /> Excel
           </button>
         }
       />

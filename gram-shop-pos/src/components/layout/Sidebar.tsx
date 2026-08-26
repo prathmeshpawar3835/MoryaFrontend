@@ -1,3 +1,4 @@
+import { useMemo, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { canAccess, type FeatureKey } from '../../constants/permissions'
@@ -110,6 +111,22 @@ export function Sidebar() {
   const { user } = useAuth()
   const location = useLocation()
   const role = user?.role
+  const [navQuery, setNavQuery] = useState('')
+
+  const filteredGroups = useMemo(() => {
+    const q = navQuery.trim().toLowerCase()
+    return groups
+      .filter((g) => canAccess(role, g.feature))
+      .map((group) => ({
+        ...group,
+        items: group.items.filter(
+          (i) =>
+            canAccess(role, i.feature) &&
+            (!q || i.label.toLowerCase().includes(q) || group.label.toLowerCase().includes(q)),
+        ),
+      }))
+      .filter((g) => g.items.length)
+  }, [role, navQuery])
 
   let lastSection = ''
 
@@ -119,65 +136,72 @@ export function Sidebar() {
         <span className="brand-mark">1G</span>
         <div className="brand-text">
           <strong>Gram Shop</strong>
-          <small>Jewellery POS & ERP</small>
+          <small>Jewellery POS</small>
         </div>
       </NavLink>
 
+      <div className="sidebar-search">
+        <i className="bi bi-search" />
+        <input
+          type="search"
+          placeholder="Search menu…"
+          value={navQuery}
+          onChange={(e) => setNavQuery(e.target.value)}
+          aria-label="Search navigation"
+        />
+      </div>
+
       <nav className="sidebar-nav">
-        <NavLink
-          to="/dashboard"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-        >
-          <i className="bi bi-speedometer2" />
+        <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+          <i className="bi bi-grid-1x2" />
           <span>Dashboard</span>
         </NavLink>
+        <NavLink to="/pos" className={({ isActive }) => `nav-link nav-link-pos ${isActive ? 'active' : ''}`}>
+          <i className="bi bi-lightning-charge" />
+          <span>Open POS</span>
+        </NavLink>
 
-        {groups
-          .filter((g) => canAccess(role, g.feature))
-          .map((group) => {
-            const visible = group.items.filter((i) => canAccess(role, i.feature))
-            if (!visible.length) return null
+        {filteredGroups.map((group) => {
+          const isCurrentSection = group.section && group.section !== lastSection
+          if (group.section) lastSection = group.section
+          const isGroupActive = group.items.some(
+            (i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`),
+          )
 
-            const isCurrentSection = group.section && group.section !== lastSection
-            if (group.section) lastSection = group.section
-
-            const isGroupActive = visible.some(
-              (i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`)
-            )
-
-            return (
-              <div key={group.label}>
-                {isCurrentSection ? (
-                  <div className="nav-section-title">{group.section}</div>
-                ) : null}
-                <details open={isGroupActive || group.label.includes('POS')}>
-                  <summary className={isGroupActive ? 'fw-bold text-white' : ''}>
-                    <i className={`bi ${group.icon}`} />
-                    <span>{group.label}</span>
-                    <i className="bi bi-chevron-right chevron" />
-                  </summary>
-                  <div className="sidebar-sub-items">
-                    {visible.map((item) => (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        className={({ isActive }) => `nav-sub ${isActive ? 'active' : ''}`}
-                      >
-                        <i className={`bi ${item.icon}`} />
-                        <span>{item.label}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                </details>
-              </div>
-            )
-          })}
+          return (
+            <div key={group.label}>
+              {isCurrentSection ? <div className="nav-section-title">{group.section}</div> : null}
+              <details open={Boolean(navQuery) || isGroupActive || group.label.includes('POS')}>
+                <summary className={isGroupActive ? 'is-open' : ''}>
+                  <i className={`bi ${group.icon}`} />
+                  <span>{group.label}</span>
+                  <i className="bi bi-chevron-right chevron" />
+                </summary>
+                <div className="sidebar-sub-items">
+                  {group.items.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      className={({ isActive }) => `nav-sub ${isActive ? 'active' : ''}`}
+                    >
+                      <i className={`bi ${item.icon}`} />
+                      <span>{item.label}</span>
+                    </NavLink>
+                  ))}
+                </div>
+              </details>
+            </div>
+          )
+        })}
       </nav>
 
       <div className="sidebar-footer">
-        <div className="d-flex align-items-center justify-content-between text-muted small">
-          <span>v2.0 Production</span>
-          <span className="badge bg-dark border border-secondary text-warning">Gold ERP</span>
+        <div className="sidebar-user">
+          <div className="sidebar-user-avatar">{(user?.fullName || 'U').slice(0, 1).toUpperCase()}</div>
+          <div>
+            <strong>{user?.fullName || user?.userName}</strong>
+            <small>{user?.role || 'Staff'}</small>
+          </div>
         </div>
       </div>
     </aside>

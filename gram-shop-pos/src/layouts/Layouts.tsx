@@ -1,5 +1,5 @@
-import { useState } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Sidebar } from '../components/layout/Sidebar'
 import { TopNav } from '../components/layout/TopNav'
@@ -17,7 +17,12 @@ type Form = z.infer<typeof changePasswordSchema>
 
 export function MainLayout() {
   const { user, loading, refreshUser } = useAuth()
+  const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
   const form = useForm<Form>({
     resolver: zodResolver(changePasswordSchema),
     mode: 'onTouched',
@@ -124,15 +129,37 @@ export function MainLayout() {
 }
 
 export function AuthLayout() {
+  const { pathname } = useLocation()
+  const copy = pathname.includes('forgot')
+    ? { title: 'Reset access', subtitle: 'Enter your username to generate a reset token' }
+    : pathname.includes('reset')
+      ? { title: 'Set a new password', subtitle: 'Use your token and choose a strong password' }
+      : { title: 'Welcome back', subtitle: 'Sign in to continue to your store counter' }
+
   return (
     <div className="auth-shell">
-      <div className="auth-card">
-        <div className="auth-brand">
-          <span>1G</span>
-          <h1>Gram Shop Jewellery</h1>
-          <p>POS & Retail Inventory Suite</p>
+      <aside className="auth-hero">
+        <div className="auth-hero-mark">1G</div>
+        <p className="auth-hero-kicker">Gram Shop Jewellery</p>
+        <h1>Counter-ready POS for 1 gram jewellery retail.</h1>
+        <p className="auth-hero-copy">
+          Billing, inventory, customers, and store reports in one calm workspace built for daily counter work.
+        </p>
+        <ul className="auth-hero-points">
+          <li><i className="bi bi-check2-circle" /> Fast sales entry with live totals</li>
+          <li><i className="bi bi-check2-circle" /> Store-wise stock and dues</li>
+          <li><i className="bi bi-check2-circle" /> Invoices, returns, and ledgers</li>
+        </ul>
+      </aside>
+      <div className="auth-panel">
+        <div className="auth-card">
+          <div className="auth-brand">
+            <span>1G</span>
+            <h1>{copy.title}</h1>
+            <p>{copy.subtitle}</p>
+          </div>
+          <Outlet />
         </div>
-        <Outlet />
       </div>
     </div>
   )
