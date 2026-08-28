@@ -20,8 +20,10 @@ export function MainLayout() {
 
   return (
     <div className={`atelier-shell ${menuOpen ? 'menu-open' : ''}`}>
-      <Sidebar mobileOpen={menuOpen} onClose={() => setMenuOpen(false)} onMenu={() => setMenuOpen((v) => !v)} />
-      <TopNav />
+      <div className="app-navbar">
+        <Sidebar mobileOpen={menuOpen} onClose={() => setMenuOpen(false)} onMenu={() => setMenuOpen((v) => !v)} />
+        <TopNav />
+      </div>
       <main className="app-content">
         <Outlet />
       </main>
