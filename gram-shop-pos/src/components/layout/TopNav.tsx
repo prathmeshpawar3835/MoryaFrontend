@@ -101,7 +101,7 @@ function crumbs(pathname: string) {
   return parts.map((p) => labels[p] ?? (Number.isFinite(Number(p)) ? `#${p}` : p))
 }
 
-export function TopNav({ onMenu }: { onMenu: () => void }) {
+export function TopNav() {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
@@ -141,10 +141,6 @@ export function TopNav({ onMenu }: { onMenu: () => void }) {
 
   return (
     <header className="topnav">
-      <button type="button" className="menu-btn" onClick={onMenu} aria-label="Toggle navigation menu">
-        <i className="bi bi-list" />
-      </button>
-
       <div className="topnav-page">
         {crumbs(location.pathname).length > 1 ? (
           <span className="topnav-crumbs">

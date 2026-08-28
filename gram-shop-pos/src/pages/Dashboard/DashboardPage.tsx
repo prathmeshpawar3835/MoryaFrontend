@@ -10,8 +10,8 @@ import { formatDateTime } from '../../utils/format'
 import { BILL_STATUS_LABELS } from '../../constants/labels'
 import { canAccess } from '../../constants/permissions'
 
-const COLORS = ['#5c1c2e', '#c4a35a', '#8a5a18', '#3a101c', '#1f8a5b']
-const CHART = { grid: '#eadcc8', axis: '#7a6558', tooltip: { borderRadius: 14, border: '1px solid #e6d7c6', boxShadow: '0 12px 28px rgba(58,16,28,0.1)', fontFamily: 'Nunito Sans, sans-serif' } }
+const COLORS = ['#173028', '#d4b06a', '#8a5a18', '#101816', '#1f8a5b']
+const CHART = { grid: '#ddd6c8', axis: '#6b746f', tooltip: { borderRadius: 14, border: '1px solid #ddd6c8', boxShadow: '0 12px 28px rgba(16,24,22,0.1)', fontFamily: 'Manrope, sans-serif' } }
 
 function greeting() {
   const h = new Date().getHours()
@@ -39,7 +39,7 @@ export function DashboardPage() {
         className="dash-hero"
         style={{
           backgroundImage:
-            "linear-gradient(90deg, rgba(58,16,28,0.82), rgba(58,16,28,0.2)), url('/images/ui/dash-banner.svg'), url('https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1600&q=70')",
+            "linear-gradient(90deg, rgba(16,24,22,0.84), rgba(16,24,22,0.18)), url('/images/ui/dash-banner.svg'), url('https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1600&q=70')",
         }}
       >
         <div>
@@ -192,8 +192,8 @@ export function DashboardPage() {
                 <AreaChart data={d.salesChartData} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#c4a35a" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#c4a35a" stopOpacity={0.02} />
+                      <stop offset="0%" stopColor="#d4b06a" stopOpacity={0.4} />
+                      <stop offset="100%" stopColor="#d4b06a" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
@@ -248,7 +248,7 @@ export function DashboardPage() {
                   <YAxis type="category" dataKey="productName" width={130} stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']} contentStyle={CHART.tooltip} />
                   <Legend />
-                  <Bar dataKey="revenue" name="Revenue" fill="#5c1c2e" radius={[0, 8, 8, 0]} />
+                  <Bar dataKey="revenue" name="Revenue" fill="#173028" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -269,7 +269,7 @@ export function DashboardPage() {
                   <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke={CHART.axis} fontSize={12} />
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Referral sales']} contentStyle={CHART.tooltip} />
-                  <Line type="monotone" dataKey="sales" stroke="#5c1c2e" strokeWidth={2.5} dot={{ r: 3, fill: '#c4a35a' }} />
+                  <Line type="monotone" dataKey="sales" stroke="#173028" strokeWidth={2.5} dot={{ r: 3, fill: '#d4b06a' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -289,7 +289,7 @@ export function DashboardPage() {
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip contentStyle={CHART.tooltip} />
                   <Legend />
-                  <Bar dataKey="exchangeAmount" name="Exchange" fill="#c4a35a" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="exchangeAmount" name="Exchange" fill="#d4b06a" radius={[6, 6, 0, 0]} />
                   <Bar dataKey="returnAmount" name="Return" fill="#2a2e38" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>

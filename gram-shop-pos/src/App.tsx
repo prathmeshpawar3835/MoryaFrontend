@@ -79,12 +79,12 @@ export default function App() {
                 duration: 3200,
                 style: {
                   borderRadius: '16px',
-                  border: '1px solid #e6d7c6',
-                  boxShadow: '0 14px 36px rgba(58, 16, 28, 0.12)',
-                  fontFamily: 'Nunito Sans, sans-serif',
+                  border: '1px solid #ddd6c8',
+                  boxShadow: '0 14px 36px rgba(16, 24, 22, 0.12)',
+                  fontFamily: 'Manrope, sans-serif',
                   fontSize: '0.875rem',
-                  background: '#fffdf8',
-                  color: '#2a1a14',
+                  background: '#fffcf7',
+                  color: '#15201c',
                 },
               }}
             />

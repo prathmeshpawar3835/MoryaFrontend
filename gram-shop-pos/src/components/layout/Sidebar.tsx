@@ -20,7 +20,7 @@ interface Group {
 
 const groups: Group[] = [
   {
-    label: 'POS Billing',
+    label: 'Billing',
     icon: 'bi-cash-register',
     feature: 'pos',
     section: 'OPERATIONS',
@@ -45,7 +45,7 @@ const groups: Group[] = [
     ],
   },
   {
-    label: 'Stock & Inventory',
+    label: 'Stock',
     icon: 'bi-boxes',
     feature: 'inventory.view',
     items: [
@@ -59,7 +59,7 @@ const groups: Group[] = [
     ],
   },
   {
-    label: 'Customers & CRM',
+    label: 'Clients',
     icon: 'bi-people',
     feature: 'customers',
     section: 'CRM & CLIENTS',
@@ -71,7 +71,7 @@ const groups: Group[] = [
     ],
   },
   {
-    label: 'Reports & BI',
+    label: 'Reports',
     icon: 'bi-graph-up-arrow',
     feature: 'reports',
     section: 'ANALYTICS',
@@ -89,7 +89,7 @@ const groups: Group[] = [
     ],
   },
   {
-    label: 'Administration',
+    label: 'Admin',
     icon: 'bi-gear',
     feature: 'settings',
     section: 'SETTINGS',
@@ -110,9 +110,11 @@ const groups: Group[] = [
 export function Sidebar({
   mobileOpen,
   onClose,
+  onMenu,
 }: {
   mobileOpen: boolean
   onClose: () => void
+  onMenu: () => void
 }) {
   const { user } = useAuth()
   const location = useLocation()
@@ -140,7 +142,7 @@ export function Sidebar({
         <span className="brand-mark">1G</span>
         <span className="brand-text">
           <strong>Gram Shop</strong>
-          <small>Atelier POS</small>
+          <small>Jewellery POS</small>
         </span>
       </NavLink>
 
@@ -149,7 +151,7 @@ export function Sidebar({
           <i className="bi bi-search" />
           <input
             type="search"
-            placeholder="Find a screen…"
+            placeholder="Jump to…"
             value={navQuery}
             onChange={(e) => setNavQuery(e.target.value)}
             aria-label="Search navigation"
@@ -161,7 +163,8 @@ export function Sidebar({
             Dashboard
           </NavLink>
           <NavLink to="/pos" className={({ isActive }) => `mast-link mast-link-pos ${isActive ? 'active' : ''}`} onClick={onClose}>
-            Open POS
+            <i className="bi bi-lightning-charge-fill" />
+            POS
           </NavLink>
           {filteredGroups.map((group) => {
             const isGroupActive = group.items.some(
@@ -193,6 +196,10 @@ export function Sidebar({
           })}
         </nav>
       </div>
+
+      <button type="button" className="menu-btn" onClick={onMenu} aria-label="Toggle navigation menu">
+        <i className={`bi ${mobileOpen ? 'bi-x-lg' : 'bi-list'}`} />
+      </button>
     </header>
   )
 }
