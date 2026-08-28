@@ -105,6 +105,7 @@ export interface CreateBillItemRequest {
   productId: number
   quantity: number
   discountAmount: number
+  productUnitIds?: number[]
 }
 
 export interface CreatePaymentRequest {

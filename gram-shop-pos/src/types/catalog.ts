@@ -103,6 +103,7 @@ export interface UpdateUserRequest {
 export interface Category {
   id: number
   name: string
+  codePrefix?: string | null
   description?: string | null
   isActive: boolean
   createdDate: string
@@ -110,6 +111,7 @@ export interface Category {
 
 export interface CreateCategoryRequest {
   name: string
+  codePrefix?: string
   description?: string
 }
 
@@ -130,9 +132,16 @@ export interface Product {
   mrp: number
   taxPercent: number
   minimumStockLevel: number
+  imagePath?: string | null
+  imageUrl?: string | null
+  weightGrams?: number | null
+  metal?: string | null
   isActive: boolean
   stockQuantity?: number | null
   isLowStock: boolean
+  productUnitId?: number | null
+  uniqueNumber?: string | null
+  productUnitStatus?: number | null
 }
 
 export interface CreateProductRequest {
@@ -146,6 +155,8 @@ export interface CreateProductRequest {
   mrp: number
   taxPercent: number
   minimumStockLevel: number
+  weightGrams?: number | null
+  metal?: string
   openingStockStoreId?: number | null
   openingStock: number
 }
@@ -160,7 +171,32 @@ export interface UpdateProductRequest {
   mrp: number
   taxPercent: number
   minimumStockLevel: number
+  weightGrams?: number | null
+  metal?: string
   isActive: boolean
+}
+
+export interface ProductUnit {
+  id: number
+  productId: number
+  storeId: number
+  storeCode: string
+  uniqueNumber: string
+  status: number
+  statusName: string
+  billItemId?: number | null
+  createdDate: string
+  productName: string
+  categoryName: string
+  mrp: number
+  sellingPrice: number
+  weightGrams?: number | null
+  metal?: string | null
+}
+
+export interface ProductUnitListQuery extends PagedQuery {
+  productId?: number
+  status?: number
 }
 
 export interface ProductListQuery extends PagedQuery {

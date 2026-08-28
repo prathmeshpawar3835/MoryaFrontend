@@ -3,6 +3,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import toast from 'react-hot-toast'
+import { useState } from 'react'
 import { productSchema } from '../../validators/schemas'
 import { productApi } from '../../api/productApi'
 import { categoryApi } from '../../api/categoryApi'
@@ -10,7 +11,9 @@ import { queryKeys } from '../../api/queryKeys'
 import { useStore } from '../../context/StoreContext'
 import { PageHeader, PageLoader, CurrencyDisplay } from '../../components/common/Feedback'
 import { FormField } from '../../components/common/FormField'
-import { getApiFieldErrors } from '../../utils/errors'
+import { getApiFieldErrors, toastApiError } from '../../utils/errors'
+import { productImageSrc } from '../../utils/media'
+import { ProductUnitsPanel } from './ProductUnitsPanel'
 import type { z } from 'zod'
 
 type Form = z.infer<typeof productSchema>
@@ -21,6 +24,7 @@ export function ProductFormPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const { selectedStoreId, stores } = useStore()
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const cats = useQuery({ queryKey: queryKeys.categories, queryFn: categoryApi.list })
   const existing = useQuery({
     queryKey: queryKeys.product(Number(id), selectedStoreId),
@@ -46,6 +50,8 @@ export function ProductFormPage() {
           isActive: existing.data.isActive,
           openingStock: 0,
           openingStockStoreId: selectedStoreId,
+          weightGrams: existing.data.weightGrams ?? undefined,
+          metal: existing.data.metal ?? '',
         }
       : {
           productCode: '',
@@ -61,13 +67,15 @@ export function ProductFormPage() {
           openingStock: 0,
           openingStockStoreId: selectedStoreId,
           isActive: true,
+          weightGrams: undefined,
+          metal: '',
         },
   })
 
   const save = useMutation({
     mutationFn: async (values: Form) => {
       if (isEdit) {
-        return productApi.update(Number(id), {
+        const updated = await productApi.update(Number(id), {
           barcode: values.barcode || undefined,
           productName: values.productName,
           categoryId: values.categoryId,
@@ -77,10 +85,14 @@ export function ProductFormPage() {
           mrp: values.mrp,
           taxPercent: values.taxPercent,
           minimumStockLevel: values.minimumStockLevel,
+          weightGrams: values.weightGrams || null,
+          metal: values.metal || undefined,
           isActive: values.isActive ?? true,
         })
+        if (imageFile) await productApi.uploadImage(Number(id), imageFile)
+        return updated
       }
-      return productApi.create({
+      const created = await productApi.create({
         productCode: values.productCode,
         barcode: values.barcode || undefined,
         productName: values.productName,
@@ -91,9 +103,13 @@ export function ProductFormPage() {
         mrp: values.mrp,
         taxPercent: values.taxPercent,
         minimumStockLevel: values.minimumStockLevel,
+        weightGrams: values.weightGrams || null,
+        metal: values.metal || undefined,
         openingStockStoreId: values.openingStockStoreId || undefined,
         openingStock: values.openingStock ?? 0,
       })
+      if (imageFile) await productApi.uploadImage(created.id, imageFile)
+      return created
     },
     onSuccess: async () => {
       toast.success(isEdit ? 'Product updated successfully' : 'Product created successfully')
@@ -189,6 +205,30 @@ export function ProductFormPage() {
                 className={`form-control ${form.formState.errors.unit ? 'is-invalid' : ''}`}
                 placeholder="e.g. PCS, GRAM, SET"
                 {...form.register('unit')}
+              />
+            </FormField>
+
+            <FormField label="Weight (grams)" error={form.formState.errors.weightGrams?.message}>
+              <input
+                className="form-control"
+                type="number"
+                step="any"
+                min={0}
+                placeholder="Optional"
+                {...form.register('weightGrams', { valueAsNumber: true })}
+              />
+            </FormField>
+
+            <FormField label="Metal details" error={form.formState.errors.metal?.message}>
+              <input className="form-control" placeholder="e.g. 22K Gold" {...form.register('metal')} />
+            </FormField>
+
+            <FormField label="Product image" hint="Optional. A default gold jewellery image is used when none is uploaded.">
+              <input
+                className="form-control"
+                type="file"
+                accept="image/jpeg,image/png,image/webp,image/svg+xml"
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
               />
             </FormField>
           </div>
@@ -389,7 +429,17 @@ export function ProductViewPage() {
       />
 
       <div className="row g-3">
-        <div className="col-md-6">
+        <div className="col-md-4">
+          <div className="card-panel h-100 text-center">
+            <h2><i className="bi bi-image text-gold" /> Product Image</h2>
+            <img
+              src={productImageSrc(p.imagePath, p.imageUrl)}
+              alt={p.productName}
+              style={{ maxWidth: '100%', maxHeight: 280, objectFit: 'contain', background: '#12203c', borderRadius: 12 }}
+            />
+          </div>
+        </div>
+        <div className="col-md-8">
           <div className="card-panel h-100">
             <h2><i className="bi bi-info-circle text-gold" /> Specifications</h2>
             <table className="table app-table mb-0">
@@ -401,6 +451,14 @@ export function ProductViewPage() {
                 <tr>
                   <th className="text-muted">Unit</th>
                   <td>{p.unit}</td>
+                </tr>
+                <tr>
+                  <th className="text-muted">Weight</th>
+                  <td>{p.weightGrams ? `${p.weightGrams} g` : '—'}</td>
+                </tr>
+                <tr>
+                  <th className="text-muted">Metal</th>
+                  <td>{p.metal || '—'}</td>
                 </tr>
                 <tr>
                   <th className="text-muted">Status</th>
@@ -457,6 +515,8 @@ export function ProductViewPage() {
           </div>
         </div>
       </div>
+
+      <ProductUnitsPanel productId={p.id} />
     </>
   )
 }

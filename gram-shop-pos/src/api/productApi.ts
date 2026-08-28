@@ -41,4 +41,9 @@ export const productApi = {
     const res = await axiosClient.get<Blob>('/products/import/template', { responseType: 'blob' })
     await downloadResponse(res, 'product-import-template.xlsx')
   },
+  uploadImage: async (id: number, file: File) => {
+    const form = new FormData()
+    form.append('file', file)
+    return (await axiosClient.post<Product>(`/products/${id}/image`, form)).data
+  },
 }

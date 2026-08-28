@@ -23,12 +23,14 @@ import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
 import { Modal } from '../../components/common/Modal'
 import { InvoiceView } from '../../components/print/InvoiceView'
 import { StoreSelector } from '../../components/common/StoreSelector'
-import { useAuth } from '../../context/AuthContext'
+import { productImageSrc } from '../../utils/media'
 
 interface CartLine {
   product: Product
   quantity: number
   discountAmount: number
+  productUnitId?: number
+  uniqueNumber?: string
 }
 
 interface PendingAdjustment {
@@ -87,6 +89,7 @@ export function POSPage() {
   const [payOpen, setPayOpen] = useState(false)
   const [helpOpen, setHelpOpen] = useState(false)
   const [completed, setCompleted] = useState<Bill | null>(null)
+  const [scanned, setScanned] = useState<Product | null>(null)
   const heldFromUrl = params.get('held')
   const [heldBillId, setHeldBillId] = useState<number | null>(heldFromUrl ? Number(heldFromUrl) : null)
   const storeId = selectedStoreId
@@ -191,7 +194,13 @@ export function POSPage() {
       const lines: CartLine[] = []
       for (const item of held.items) {
         const product = await productApi.get(item.productId, held.storeId)
-        lines.push({ product, quantity: item.quantity, discountAmount: item.discountAmount })
+        lines.push({
+          product,
+          quantity: item.quantity,
+          discountAmount: item.discountAmount,
+          productUnitId: item.productUnitIds?.[0],
+          uniqueNumber: undefined,
+        })
       }
       setCart(lines)
       return held
@@ -252,11 +261,34 @@ export function POSPage() {
   const remaining = Math.round((payable - creditAmt - paidNonCredit) * 100) / 100
 
   const addProduct = (product: Product) => {
+    if (product.productUnitId) {
+      setCart((prev) => {
+        if (prev.some((l) => l.productUnitId === product.productUnitId)) {
+          toast.error(`Piece ${product.uniqueNumber} is already in the cart`)
+          return prev
+        }
+        return [
+          ...prev,
+          {
+            product,
+            quantity: 1,
+            discountAmount: 0,
+            productUnitId: product.productUnitId,
+            uniqueNumber: product.uniqueNumber ?? undefined,
+          },
+        ]
+      })
+      setScanned(product)
+      setQuery('')
+      searchRef.current?.focus()
+      return
+    }
     setCart((prev) => {
-      const existing = prev.find((l) => l.product.id === product.id)
-      if (existing) return prev.map((l) => (l.product.id === product.id ? { ...l, quantity: l.quantity + 1 } : l))
+      const existing = prev.find((l) => l.product.id === product.id && !l.productUnitId)
+      if (existing) return prev.map((l) => (l.product.id === product.id && !l.productUnitId ? { ...l, quantity: l.quantity + 1 } : l))
       return [...prev, { product, quantity: 1, discountAmount: 0 }]
     })
+    setScanned(product)
     setQuery('')
     searchRef.current?.focus()
   }
@@ -267,8 +299,12 @@ export function POSPage() {
     try {
       addProduct(await productApi.barcode(value, storeId))
       return
-    } catch {
-      /* not barcode */
+    } catch (err: unknown) {
+      const status = (err as { response?: { status?: number } })?.response?.status
+      if (status && status !== 404) {
+        toastApiError(err, 'Unable to add scanned item')
+        return
+      }
     }
     const found = await productApi.search(value, storeId)
     if (found.length === 1) addProduct(found[0])
@@ -298,6 +334,7 @@ export function POSPage() {
     setAdjAmount('')
     setHeldBillId(null)
     setCompleted(null)
+    setScanned(null)
   }
 
   const holdMut = useMutation({
@@ -307,7 +344,12 @@ export function POSPage() {
         customerId: customer?.id,
         billDiscount,
         notes,
-        items: cart.map((l) => ({ productId: l.product.id, quantity: l.quantity, discountAmount: l.discountAmount })),
+        items: cart.map((l) => ({
+          productId: l.product.id,
+          quantity: l.quantity,
+          discountAmount: l.discountAmount,
+          productUnitIds: l.productUnitId ? [l.productUnitId] : undefined,
+        })),
       }),
     onSuccess: async () => {
       toast.success('Bill placed on hold successfully')
@@ -338,7 +380,12 @@ export function POSPage() {
         salesPersonId: salesPersonId || undefined,
         storeDiscountId: storeDiscountId || undefined,
         birthdayOfferId: birthdayOfferId || undefined,
-        items: cart.map((l) => ({ productId: l.product.id, quantity: l.quantity, discountAmount: l.discountAmount })),
+        items: cart.map((l) => ({
+          productId: l.product.id,
+          quantity: l.quantity,
+          discountAmount: l.discountAmount,
+          productUnitIds: l.productUnitId ? [l.productUnitId] : undefined,
+        })),
         adjustments: adjustments.map((a) => ({
           kind: a.kind,
           originalBillId: a.originalBillId,
@@ -445,7 +492,7 @@ export function POSPage() {
           <input
             ref={searchRef}
             className="form-control"
-            placeholder="Scan barcode or search product (F2)"
+            placeholder="Scan unique number / QR / barcode or search (F2)"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             onKeyDown={(e) => {
@@ -503,6 +550,27 @@ export function POSPage() {
             </div>
           ) : null}
 
+          {scanned ? (
+            <div className="card-panel mb-3 p-3">
+              <div className="d-flex gap-3 align-items-start">
+                <img
+                  src={productImageSrc(scanned.imagePath, scanned.imageUrl)}
+                  alt=""
+                  style={{ width: 72, height: 72, objectFit: 'contain', borderRadius: 8, background: '#12203c' }}
+                />
+                <div className="flex-grow-1">
+                  <div className="fw-bold text-navy-900">{scanned.productName}</div>
+                  <div className="small text-muted">{scanned.categoryName} · {scanned.uniqueNumber || scanned.productCode}</div>
+                  <div className="small">
+                    MRP {formatMoney(scanned.mrp)} · Selling {formatMoney(scanned.sellingPrice)}
+                    {scanned.weightGrams ? ` · ${scanned.weightGrams} g` : ''}
+                    {scanned.metal ? ` · ${scanned.metal}` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          ) : null}
+
           {/* Cart Table */}
           <div className="table-shell">
             <table className="table app-table align-middle mb-0">
@@ -530,22 +598,24 @@ export function POSPage() {
                   cart.map((line, idx) => {
                     const calc = totals.lines[idx]
                     return (
-                      <tr key={line.product.id}>
+                      <tr key={line.productUnitId ?? `sku-${line.product.id}-${idx}`}>
                         <td>
                           <div className="fw-bold text-navy-900">{line.product.productName}</div>
                           <div className="small text-muted">{line.product.productCode} · {line.product.unit}</div>
+                          {line.uniqueNumber ? (
+                            <div className="small font-monospace text-gold">{line.uniqueNumber}</div>
+                          ) : null}
                         </td>
                         <td>
                           <div className="qty-cell">
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-secondary"
+                              disabled={Boolean(line.productUnitId)}
                               onClick={() =>
                                 setCart((c) =>
-                                  c.map((l) =>
-                                    l.product.id === line.product.id
-                                      ? { ...l, quantity: Math.max(0.01, l.quantity - 1) }
-                                      : l
+                                  c.map((l, i) =>
+                                    i === idx ? { ...l, quantity: Math.max(0.01, l.quantity - 1) } : l
                                   )
                                 )
                               }
@@ -558,12 +628,11 @@ export function POSPage() {
                               min={0.01}
                               step="any"
                               value={line.quantity}
+                              disabled={Boolean(line.productUnitId)}
                               onChange={(e) =>
                                 setCart((c) =>
-                                  c.map((l) =>
-                                    l.product.id === line.product.id
-                                      ? { ...l, quantity: Number(e.target.value) }
-                                      : l
+                                  c.map((l, i) =>
+                                    i === idx ? { ...l, quantity: Number(e.target.value) } : l
                                   )
                                 )
                               }
@@ -571,11 +640,10 @@ export function POSPage() {
                             <button
                               type="button"
                               className="btn btn-sm btn-outline-secondary"
+                              disabled={Boolean(line.productUnitId)}
                               onClick={() =>
                                 setCart((c) =>
-                                  c.map((l) =>
-                                    l.product.id === line.product.id ? { ...l, quantity: l.quantity + 1 } : l
-                                  )
+                                  c.map((l, i) => (i === idx ? { ...l, quantity: l.quantity + 1 } : l))
                                 )
                               }
                             >
@@ -592,10 +660,8 @@ export function POSPage() {
                             value={line.discountAmount}
                             onChange={(e) =>
                               setCart((c) =>
-                                c.map((l) =>
-                                  l.product.id === line.product.id
-                                    ? { ...l, discountAmount: Number(e.target.value) }
-                                    : l
+                                c.map((l, i) =>
+                                  i === idx ? { ...l, discountAmount: Number(e.target.value) } : l
                                 )
                               )
                             }
@@ -607,7 +673,7 @@ export function POSPage() {
                           <button
                             type="button"
                             className="btn btn-sm btn-outline-danger border-0 p-1"
-                            onClick={() => setCart((c) => c.filter((l) => l.product.id !== line.product.id))}
+                            onClick={() => setCart((c) => c.filter((_, i) => i !== idx))}
                             title="Remove item"
                           >
                             <i className="bi bi-trash" />

@@ -68,7 +68,7 @@ export function ProductImportPage() {
           <div className="col-md-3">
             <div className="p-3 bg-light rounded-3 h-100 border">
               <div className="fw-bold text-navy-900 mb-1">2. Fill Products</div>
-              <small className="text-muted">Enter product code, name, category, prices, and GST rates.</small>
+              <small className="text-muted">Enter product code, name, category, prices, GST, and quantity. Quantity 10 creates 10 unique piece numbers (e.g. RNG-000001).</small>
             </div>
           </div>
           <div className="col-md-3">

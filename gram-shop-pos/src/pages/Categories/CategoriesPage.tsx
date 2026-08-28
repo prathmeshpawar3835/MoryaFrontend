@@ -30,8 +30,8 @@ export function CategoriesPage() {
     mode: 'onTouched',
     values:
       editing && editing !== 'new'
-        ? { name: editing.name, description: editing.description ?? '', isActive: editing.isActive }
-        : { name: '', description: '', isActive: true },
+        ? { name: editing.name, codePrefix: editing.codePrefix ?? '', description: editing.description ?? '', isActive: editing.isActive }
+        : { name: '', codePrefix: '', description: '', isActive: true },
   })
 
   const save = useMutation({
@@ -39,11 +39,12 @@ export function CategoriesPage() {
       if (editing && editing !== 'new') {
         return categoryApi.update(editing.id, {
           name: values.name,
+          codePrefix: values.codePrefix,
           description: values.description,
           isActive: values.isActive ?? true,
         })
       }
-      return categoryApi.create({ name: values.name, description: values.description })
+      return categoryApi.create({ name: values.name, codePrefix: values.codePrefix, description: values.description })
     },
     onSuccess: async () => {
       toast.success(editing === 'new' ? 'Category created successfully' : 'Category updated successfully')
@@ -57,6 +58,7 @@ export function CategoriesPage() {
 
   const rows = (q.data ?? []).filter((c) =>
     c.name.toLowerCase().includes(search.toLowerCase()) ||
+    (c.codePrefix && c.codePrefix.toLowerCase().includes(search.toLowerCase())) ||
     (c.description && c.description.toLowerCase().includes(search.toLowerCase()))
   )
 
@@ -81,12 +83,15 @@ export function CategoriesPage() {
       <DataTable
         loading={q.isLoading}
         error={q.isError ? 'Could not load categories' : null}
-        columns={['Category Name', 'Description', 'Active Status', 'Actions']}
+        columns={['Category Name', 'Prefix', 'Description', 'Active Status', 'Actions']}
       >
         {rows.map((c) => (
           <tr key={c.id}>
             <td>
               <span className="fw-bold text-navy-900">{c.name}</span>
+            </td>
+            <td>
+              <span className="font-monospace small">{c.codePrefix || '—'}</span>
             </td>
             <td>
               <span className="text-muted">{c.description || '—'}</span>
@@ -126,6 +131,19 @@ export function CategoriesPage() {
               className={`form-control ${form.formState.errors.name ? 'is-invalid' : ''}`}
               placeholder="e.g. 1g Gold Necklaces, Bangles, Rings"
               {...form.register('name')}
+            />
+          </FormField>
+
+          <FormField
+            label="Unique number prefix"
+            hint="Used for piece numbers, e.g. RNG, CHN, BRC"
+            error={form.formState.errors.codePrefix?.message}
+          >
+            <input
+              className="form-control"
+              placeholder="e.g. RNG"
+              maxLength={8}
+              {...form.register('codePrefix')}
             />
           </FormField>
 

@@ -47,6 +47,8 @@ export function ProductsPage() {
         mrp: p.mrp,
         taxPercent: p.taxPercent,
         minimumStockLevel: p.minimumStockLevel,
+        weightGrams: p.weightGrams,
+        metal: p.metal ?? undefined,
         isActive: !p.isActive,
       })
     },

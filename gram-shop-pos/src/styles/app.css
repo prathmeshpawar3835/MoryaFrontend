@@ -941,8 +941,42 @@ html, body, #root {
 }
 
 @media print {
-  .sidebar, .topnav, .print-toolbar, .pos-top, .pos-actions, .filter-bar, .page-header-actions, .pager { display: none !important; }
+  .sidebar, .topnav, .print-toolbar, .pos-top, .pos-actions, .filter-bar, .page-header-actions, .pager, .no-print, .jewellery-tag-print-toolbar { display: none !important; }
   .app-shell { display: block; }
   .app-main, .app-content { height: auto; overflow: visible; padding: 0; }
   .invoice-paper { box-shadow: none; border: none; max-width: none; }
+  .jewellery-tag-print-overlay { position: static; inset: auto; background: #fff; }
+  .jewellery-tag { break-after: page; page-break-after: always; }
 }
+
+.jewellery-tag-print-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1080;
+  background: #fff;
+  overflow: auto;
+  padding: 1rem;
+}
+.jewellery-tag-print-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+.jewellery-tag-sheet { display: flex; flex-direction: column; align-items: center; gap: 8mm; }
+.jewellery-tag {
+  display: flex;
+  gap: 2mm;
+  align-items: center;
+  border: 1px solid #1b2a4a;
+  padding: 1.5mm;
+  box-sizing: border-box;
+  background: #fff;
+  color: #12203c;
+  font-family: Manrope, sans-serif;
+}
+.jewellery-tag-qr { width: 18mm; height: 18mm; object-fit: contain; background: #fff; }
+.jewellery-tag-copy { display: flex; flex-direction: column; font-size: 8px; line-height: 1.25; min-width: 0; }
+.jewellery-tag-copy strong { font-size: 10px; letter-spacing: 0.04em; }
+.jewellery-tag-barcode { height: 8mm; width: 100%; object-fit: contain; margin-top: 1mm; }

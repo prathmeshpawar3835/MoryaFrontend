@@ -8,6 +8,7 @@ export const queryKeys = {
   categories: ['categories'] as const,
   products: (q: unknown) => ['products', q] as const,
   product: (id: number, storeId?: number | null) => ['products', id, storeId ?? 'any'] as const,
+  productUnits: (q: unknown) => ['product-units', q] as const,
   productSearch: (query: string, storeId?: number | null) => ['products', 'search', query, storeId ?? 'any'] as const,
   inventory: (q: unknown) => ['inventory', q] as const,
   inventoryLedger: (q: unknown) => ['inventory', 'ledger', q] as const,

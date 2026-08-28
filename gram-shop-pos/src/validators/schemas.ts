@@ -45,11 +45,14 @@ export const productSchema = z.object({
   minimumStockLevel: z.number().min(0),
   openingStockStoreId: z.number().optional().nullable(),
   openingStock: z.number().min(0).optional(),
+  weightGrams: z.number().min(0).optional().nullable(),
+  metal: z.string().optional(),
   isActive: z.boolean().optional(),
 })
 
 export const categorySchema = z.object({
   name: z.string().min(1, 'Category name is required'),
+  codePrefix: z.string().max(8).optional(),
   description: z.string().optional(),
   isActive: z.boolean().optional(),
 })
