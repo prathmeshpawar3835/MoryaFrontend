@@ -28,8 +28,8 @@ export function DataTable({
         <table className="table app-table mb-0 align-middle">
           <thead>
             <tr>
-              {columns.map((c) => (
-                <th key={c}>{c}</th>
+              {columns.map((c, i) => (
+                <th key={`${c}-${i}`}>{c}</th>
               ))}
             </tr>
           </thead>
@@ -37,8 +37,8 @@ export function DataTable({
             {loading ? (
               Array.from({ length: 6 }).map((_, row) => (
                 <tr key={`skel-${row}`}>
-                  {columns.map((c) => (
-                    <td key={c}>
+                  {columns.map((c, i) => (
+                    <td key={`${c}-${i}`}>
                       <div className="skel skel-line" style={{ width: row % 2 ? '64%' : '82%' }} />
                     </td>
                   ))}

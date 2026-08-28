@@ -72,22 +72,30 @@ export function Modal({
   onClose,
   children,
   wide,
+  dismissible = true,
 }: {
   open: boolean
   title: string
   onClose: () => void
   children: ReactNode
   wide?: boolean
+  dismissible?: boolean
 }) {
   if (!open) return null
   return (
-    <div className="modal-backdrop-app" onClick={onClose} role="presentation">
+    <div
+      className="modal-backdrop-app"
+      onClick={dismissible ? onClose : undefined}
+      role="presentation"
+    >
       <div className={`app-modal ${wide ? 'is-wide' : ''}`} role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
         <div className="app-modal-head">
           <h2>{title}</h2>
-          <button type="button" className="btn-close-modal" onClick={onClose} aria-label="Close">
-            <i className="bi bi-x" />
-          </button>
+          {dismissible ? (
+            <button type="button" className="btn-close-modal" onClick={onClose} aria-label="Close">
+              <i className="bi bi-x" />
+            </button>
+          ) : null}
         </div>
         {children}
       </div>

@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useHotkeys } from '../../hooks/useHotkeys'
 import toast from 'react-hot-toast'
 import { toastApiError } from '../../utils/errors'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
@@ -110,6 +111,10 @@ export function TopNav({ onMenu }: { onMenu: () => void }) {
     resolver: zodResolver(changePasswordSchema),
     mode: 'onTouched',
   })
+
+  useHotkeys({
+    F10: () => navigate('/pos'),
+  }, !user?.mustChangePassword)
 
   const onLogout = async () => {
     await logout()

@@ -144,52 +144,55 @@ export function Sidebar({
         </span>
       </NavLink>
 
-      <div className="mast-search">
-        <i className="bi bi-search" />
-        <input
-          type="search"
-          placeholder="Find a screen…"
-          value={navQuery}
-          onChange={(e) => setNavQuery(e.target.value)}
-          aria-label="Search navigation"
-        />
-      </div>
+      <div className="mast-drawer">
+        <div className="mast-search">
+          <i className="bi bi-search" />
+          <input
+            type="search"
+            placeholder="Find a screen…"
+            value={navQuery}
+            onChange={(e) => setNavQuery(e.target.value)}
+            aria-label="Search navigation"
+          />
+        </div>
 
-      <nav className="mast-nav" aria-label="Primary">
-        <NavLink to="/dashboard" className={({ isActive }) => `mast-link ${isActive ? 'active' : ''}`} onClick={onClose}>
-          Dashboard
-        </NavLink>
-        <NavLink to="/pos" className={({ isActive }) => `mast-link mast-link-pos ${isActive ? 'active' : ''}`} onClick={onClose}>
-          Open POS
-        </NavLink>
-        {filteredGroups.map((group) => {
-          const isGroupActive = group.items.some(
-            (i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`),
-          )
-          return (
-            <div key={group.label} className={`mast-drop ${isGroupActive ? 'is-active' : ''}`}>
-              <button type="button" className="mast-link" aria-haspopup="true">
-                <i className={`bi ${group.icon}`} />
-                <span>{group.label}</span>
-                <i className="bi bi-chevron-down mast-caret" />
-              </button>
-              <div className="mast-menu">
-                {group.items.map((item) => (
-                  <NavLink
-                    key={item.to}
-                    to={item.to}
-                    className={({ isActive }) => `mast-item ${isActive ? 'active' : ''}`}
-                    onClick={onClose}
-                  >
-                    <i className={`bi ${item.icon}`} />
-                    {item.label}
-                  </NavLink>
-                ))}
+        <nav className="mast-nav" aria-label="Primary">
+          <NavLink to="/dashboard" className={({ isActive }) => `mast-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+            Dashboard
+          </NavLink>
+          <NavLink to="/pos" className={({ isActive }) => `mast-link mast-link-pos ${isActive ? 'active' : ''}`} onClick={onClose}>
+            Open POS
+          </NavLink>
+          {filteredGroups.map((group) => {
+            const isGroupActive = group.items.some(
+              (i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`),
+            )
+            return (
+              <div key={group.label} className={`mast-drop ${isGroupActive ? 'is-active' : ''}`}>
+                <button type="button" className="mast-link" aria-haspopup="true" aria-expanded={isGroupActive}>
+                  <i className={`bi ${group.icon}`} />
+                  <span>{group.label}</span>
+                  <i className="bi bi-chevron-down mast-caret" />
+                </button>
+                <div className="mast-menu">
+                  {group.items.map((item) => (
+                    <NavLink
+                      key={item.to}
+                      to={item.to}
+                      end={group.items.some((other) => other.to !== item.to && other.to.startsWith(`${item.to}/`))}
+                      className={({ isActive }) => `mast-item ${isActive ? 'active' : ''}`}
+                      onClick={onClose}
+                    >
+                      <i className={`bi ${item.icon}`} />
+                      {item.label}
+                    </NavLink>
+                  ))}
+                </div>
               </div>
-            </div>
-          )
-        })}
-      </nav>
+            )
+          })}
+        </nav>
+      </div>
     </header>
   )
 }

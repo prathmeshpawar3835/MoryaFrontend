@@ -1,7 +1,8 @@
 import axios, { type AxiosError, type AxiosResponse, type InternalAxiosRequestConfig } from 'axios'
 import toast from 'react-hot-toast'
 import type { ApiResponse } from '../types'
-import { TOKEN_KEY } from '../constants/storage'
+import { TOKEN_KEY, USER_KEY } from '../constants/storage'
+import { safeReturnPath } from '../utils/paths'
 
 declare module 'axios' {
   interface AxiosRequestConfig {
@@ -91,9 +92,12 @@ axiosClient.interceptors.response.use(
 
     if (status === 401 && hadToken && !onLogin) {
       localStorage.removeItem(TOKEN_KEY)
-      localStorage.removeItem('gramshop.user')
+      localStorage.removeItem(USER_KEY)
       toast.error(message)
-      window.location.assign('/login')
+      const here = `${window.location.pathname}${window.location.search}`
+      const next = safeReturnPath(here)
+      const q = next !== '/dashboard' ? `?from=${encodeURIComponent(next)}` : ''
+      window.location.assign(`/login${q}`)
     }
 
     return Promise.reject(Object.assign(error, { userMessage: message, apiErrors: payload?.errors ?? [] }))

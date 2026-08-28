@@ -1,19 +1,19 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useLocation } from 'react-router-dom'
 import { useState } from 'react'
 import { loginSchema } from '../../validators/schemas'
 import { useAuth } from '../../context/AuthContext'
 import { FormField } from '../../components/common/FormField'
 import toast from 'react-hot-toast'
 import { toastApiError } from '../../utils/errors'
+import { safeReturnPath } from '../../utils/paths'
 import type { z } from 'zod'
 
 type Form = z.infer<typeof loginSchema>
 
 export function LoginPage() {
   const { login, user, loading } = useAuth()
-  const navigate = useNavigate()
   const location = useLocation()
   const [showPassword, setShowPassword] = useState(false)
   const form = useForm<Form>({
@@ -21,16 +21,17 @@ export function LoginPage() {
     defaultValues: { userName: '', password: '' },
     mode: 'onTouched',
   })
+  const fromState = (location.state as { from?: string } | null)?.from
+  const fromQuery = new URLSearchParams(location.search).get('from')
+  const next = safeReturnPath(fromState || fromQuery)
 
-  if (!loading && user) return <Navigate to="/dashboard" replace />
+  if (!loading && user) return <Navigate to={next} replace />
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
       await login(values)
       toast.success('Signed in successfully')
-      const to = (location.state as { from?: string } | null)?.from || '/dashboard'
-      navigate(to, { replace: true })
-    } catch (err: any) {
+    } catch (err: unknown) {
       toastApiError(err, 'Invalid credentials')
     }
   })

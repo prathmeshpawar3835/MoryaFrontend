@@ -67,7 +67,7 @@ export function ForgotPasswordPage() {
           <div className="fw-bold mb-1"><i className="bi bi-info-circle me-1" /> Dev Reset Token:</div>
           <code className="user-select-all d-block bg-white p-1 rounded border mb-2">{token}</code>
           <Link
-            to={`/reset-password?token=${encodeURIComponent(token)}`}
+            to={`/reset-password?token=${encodeURIComponent(token)}&user=${encodeURIComponent(form.getValues('userName'))}`}
             className="btn btn-sm btn-primary w-100 fw-semibold"
           >
             Continue to Reset Form →

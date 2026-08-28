@@ -17,7 +17,7 @@ export function ResetPasswordPage() {
     resolver: zodResolver(resetPasswordSchema),
     defaultValues: {
       token: params.get('token') ?? '',
-      userName: '',
+      userName: params.get('user') ?? '',
       newPassword: '',
       confirmPassword: '',
     },

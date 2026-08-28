@@ -408,6 +408,16 @@ export function RepairsPage() {
     onSuccess: async () => {
       toast.success('Job recorded')
       setOpen(false)
+      setInvoice('')
+      setBillId(0)
+      setProductName('')
+      setBillItemId(0)
+      setCustomerName('')
+      setMobile('')
+      setNotes('')
+      setEstimated(0)
+      setPaidNow(0)
+      setJobType(RepairJobType.Repair)
       await qc.invalidateQueries({ queryKey: ['repairs'] })
     },
     onError: (err: any) => toastApiError(err, 'Failed to create job'),

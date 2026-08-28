@@ -1,8 +1,11 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 const INPUT_TAGS = new Set(['INPUT', 'TEXTAREA', 'SELECT'])
 
 export function useHotkeys(map: Record<string, () => void>, enabled = true) {
+  const mapRef = useRef(map)
+  mapRef.current = map
+
   useEffect(() => {
     if (!enabled) return
     const onKey = (event: KeyboardEvent) => {
@@ -10,11 +13,11 @@ export function useHotkeys(map: Record<string, () => void>, enabled = true) {
       const inField = Boolean(target && INPUT_TAGS.has(target.tagName))
       const key = event.key
       if (key === 'Escape') {
-        map.Escape?.()
+        mapRef.current.Escape?.()
         return
       }
       if (inField && !key.startsWith('F')) return
-      const handler = map[key]
+      const handler = mapRef.current[key]
       if (handler) {
         event.preventDefault()
         handler()
@@ -22,5 +25,5 @@ export function useHotkeys(map: Record<string, () => void>, enabled = true) {
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [map, enabled])
+  }, [enabled])
 }

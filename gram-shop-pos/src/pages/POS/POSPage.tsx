@@ -54,7 +54,7 @@ const PAY_MODES = [
 
 export function POSPage() {
   const { selectedStoreId, setSelectedStoreId } = useStore()
-  const { isAdmin } = useAuth()
+  const { isAdmin, user } = useAuth()
   const navigate = useNavigate()
   const [params] = useSearchParams()
   const qc = useQueryClient()
@@ -260,6 +260,7 @@ export function POSPage() {
   const creditAmt = Number(payments[PaymentMode.Credit] || 0)
   const paidTotal = paidNonCredit + creditUsedPreview
   const remaining = Math.round((payable - creditAmt - paidNonCredit) * 100) / 100
+  const paymentShort = Math.abs(remaining) > 0.009
 
   const addProduct = (product: Product) => {
     if (product.productUnitId) {
@@ -436,19 +437,22 @@ export function POSPage() {
     },
   })
 
-  useHotkeys({
-    F2: () => searchRef.current?.focus(),
-    F4: () => customerRef.current?.focus(),
-    F8: () => setPayOpen(true),
-    F9: () => {
-      if (cart.length && storeId) holdMut.mutate()
+  useHotkeys(
+    {
+      F2: () => searchRef.current?.focus(),
+      F4: () => customerRef.current?.focus(),
+      F8: () => setPayOpen(true),
+      F9: () => {
+        if (cart.length && storeId) holdMut.mutate()
+      },
+      F10: () => setPayOpen(true),
+      Escape: () => {
+        setPayOpen(false)
+        setHelpOpen(false)
+      },
     },
-    F10: () => setPayOpen(true),
-    Escape: () => {
-      setPayOpen(false)
-      setHelpOpen(false)
-    },
-  })
+    !user?.mustChangePassword,
+  )
 
   if (!storeId) {
     return (
@@ -525,19 +529,22 @@ export function POSPage() {
             <div className="pos-search-results">
               <div className="pos-search-head">
                 <span className="small fw-bold">Search Results ({searchQ.data.length})</span>
-                <span className="small text-warning">Click item or press Enter to add</span>
+                <span className="small text-warning">Click an item to add · Enter scans barcode / unique no.</span>
               </div>
               <div className="list-group list-group-flush" style={{ maxHeight: '280px', overflowY: 'auto' }}>
                 {searchQ.data.slice(0, 8).map((p) => (
                   <button
-                    key={p.id}
+                    key={p.productUnitId ? `unit-${p.productUnitId}` : `sku-${p.id}`}
                     type="button"
                     className="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2 px-3"
                     onClick={() => addProduct(p)}
                   >
                     <div>
                       <div className="fw-bold text-dark">{p.productName}</div>
-                      <small className="text-muted">{p.productCode} {p.barcode ? `· ${p.barcode}` : ''}</small>
+                      <small className="text-muted">
+                        {p.uniqueNumber || p.productCode}
+                        {p.barcode ? ` · ${p.barcode}` : ''}
+                      </small>
                     </div>
                     <div className="text-end">
                       <div className="fw-bold text-navy-900">{formatMoney(p.sellingPrice)}</div>
@@ -1389,6 +1396,10 @@ export function POSPage() {
                 <div className="alert alert-danger py-2 small">
                   <i className="bi bi-exclamation-triangle-fill me-1" /> Credit / Udhaar billing requires selecting a customer.
                 </div>
+              ) : paymentShort ? (
+                <div className="alert alert-warning py-2 small">
+                  <i className="bi bi-exclamation-triangle-fill me-1" /> Collect the remaining {formatMoney(remaining)} before generating the invoice.
+                </div>
               ) : null}
             </div>
 
@@ -1396,7 +1407,12 @@ export function POSPage() {
               <button
                 type="button"
                 className="btn btn-gold w-100 py-2 fs-6 fw-bold"
-                disabled={completeMut.isPending || !cart.length || (payments[PaymentMode.Credit] > 0 && !customer)}
+                disabled={
+                  completeMut.isPending ||
+                  !cart.length ||
+                  paymentShort ||
+                  (payments[PaymentMode.Credit] > 0 && !customer)
+                }
                 onClick={() => completeMut.mutate()}
               >
                 {completeMut.isPending ? (
