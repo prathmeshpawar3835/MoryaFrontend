@@ -452,7 +452,7 @@ export function POSPage() {
 
   if (!storeId) {
     return (
-      <div className="p-4 d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
+      <div className="p-4 d-flex justify-content-center align-items-center pos-gate">
         <div className="card-panel text-center p-5" style={{ maxWidth: '500px' }}>
           <i className="bi bi-shop text-warning fs-1 mb-3 d-block" />
           <h1 className="h4 fw-bold text-navy-900 mb-2">Select Active Counter Store</h1>
@@ -557,7 +557,7 @@ export function POSPage() {
                 <img
                   src={productImageSrc(scanned.imagePath, scanned.imageUrl)}
                   alt=""
-                  style={{ width: 72, height: 72, objectFit: 'contain', borderRadius: 8, background: '#12203c' }}
+                  style={{ width: 72, height: 72, objectFit: 'contain', borderRadius: 10, background: '#f3f4f6' }}
                 />
                 <div className="flex-grow-1">
                   <div className="fw-bold text-navy-900">{scanned.productName}</div>

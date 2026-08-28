@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { EmptyState, ErrorState, LoadingSpinner, Pagination } from '../common/Feedback'
+import { EmptyState, ErrorState, Pagination } from '../common/Feedback'
 
 export function DataTable({
   loading,
@@ -35,12 +35,15 @@ export function DataTable({
           </thead>
           <tbody>
             {loading ? (
-              <tr>
-                <td colSpan={columns.length} className="text-center py-5">
-                  <LoadingSpinner size="md" />
-                  <div className="text-muted small mt-2 fw-medium">Loading records…</div>
-                </td>
-              </tr>
+              Array.from({ length: 6 }).map((_, row) => (
+                <tr key={`skel-${row}`}>
+                  {columns.map((c) => (
+                    <td key={c}>
+                      <div className="skel skel-line" style={{ width: row % 2 ? '64%' : '82%' }} />
+                    </td>
+                  ))}
+                </tr>
+              ))
             ) : error ? (
               <tr>
                 <td colSpan={columns.length} className="p-4">

@@ -53,6 +53,53 @@ function pageTitle(pathname: string) {
   return PAGE_TITLES.find((p) => p.match.test(pathname))?.title ?? 'Gram Shop'
 }
 
+function crumbs(pathname: string) {
+  const parts = pathname.split('/').filter(Boolean)
+  if (!parts.length) return ['Dashboard']
+  const labels: Record<string, string> = {
+    dashboard: 'Dashboard',
+    pos: 'POS',
+    held: 'Held bills',
+    bills: 'Bills',
+    products: 'Products',
+    create: 'New',
+    edit: 'Edit',
+    import: 'Import',
+    categories: 'Categories',
+    inventory: 'Inventory',
+    stock: 'Stock',
+    'stock-in': 'Stock in',
+    adjustment: 'Adjustment',
+    transfer: 'Transfer',
+    ledger: 'Ledger',
+    purchases: 'Purchases',
+    suppliers: 'Suppliers',
+    customers: 'Customers',
+    dues: 'Dues',
+    referrals: 'Referrals',
+    returns: 'Returns',
+    new: 'New',
+    exchange: 'Exchange',
+    buyback: 'Buyback',
+    repairs: 'Repairs',
+    reports: 'Reports',
+    sales: 'Sales',
+    'product-analytics': 'Analytics',
+    profit: 'Profit',
+    birthdays: 'Birthdays',
+    settings: 'Settings',
+    stores: 'Stores',
+    users: 'Users',
+    billing: 'Billing',
+    tax: 'Tax',
+    discounts: 'Discounts',
+    'birthday-offers': 'Birthday offers',
+    business: 'Business',
+    audit: 'Audit',
+  }
+  return parts.map((p) => labels[p] ?? (Number.isFinite(Number(p)) ? `#${p}` : p))
+}
+
 export function TopNav({ onMenu }: { onMenu: () => void }) {
   const { user, logout } = useAuth()
   const navigate = useNavigate()
@@ -94,7 +141,18 @@ export function TopNav({ onMenu }: { onMenu: () => void }) {
       </button>
 
       <div className="topnav-page">
-        <span className="topnav-kicker">Gram Shop</span>
+        {crumbs(location.pathname).length > 1 ? (
+          <span className="topnav-crumbs">
+            {crumbs(location.pathname).map((c, i, arr) => (
+              <span key={`${c}-${i}`}>
+                {i > 0 ? <i className="bi bi-chevron-right mx-1" /> : null}
+                {i === arr.length - 1 ? <span className="fw-semibold">{c}</span> : c}
+              </span>
+            ))}
+          </span>
+        ) : (
+          <span className="topnav-kicker">Gram Shop</span>
+        )}
         <strong>{pageTitle(location.pathname)}</strong>
       </div>
 

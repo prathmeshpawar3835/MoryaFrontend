@@ -78,13 +78,13 @@ export default function App() {
                 className: 'app-toast',
                 duration: 3200,
                 style: {
-                  borderRadius: '16px',
-                  border: '1px solid #e6e1d4',
-                  boxShadow: '0 16px 40px rgba(18, 27, 50, 0.12)',
-                  fontFamily: 'Manrope, sans-serif',
+                  borderRadius: '14px',
+                  border: '1px solid #e4e6ea',
+                  boxShadow: '0 14px 36px rgba(22, 24, 29, 0.1)',
+                  fontFamily: 'Outfit, sans-serif',
                   fontSize: '0.875rem',
-                  background: '#fffcf8',
-                  color: '#151821',
+                  background: '#ffffff',
+                  color: '#1a1c1f',
                 },
               }}
             />

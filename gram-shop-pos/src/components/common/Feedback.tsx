@@ -3,8 +3,13 @@ import type { ReactNode } from 'react'
 export function PageLoader({ label = 'Loading data…' }: { label?: string }) {
   return (
     <div className="page-loader" role="status" aria-live="polite">
-      <div className="spinner-border text-warning" style={{ width: '2.5rem', height: '2.5rem' }} />
-      <span className="fw-semibold text-muted mt-2">{label}</span>
+      <div className="w-100" style={{ maxWidth: 720 }}>
+        <div className="skel skel-block mb-3" />
+        <div className="skel skel-line mb-2" />
+        <div className="skel skel-line mb-2" style={{ width: '62%' }} />
+        <div className="skel skel-line" style={{ width: '48%' }} />
+      </div>
+      <span className="fw-semibold text-muted mt-3">{label}</span>
     </div>
   )
 }
@@ -15,7 +20,7 @@ export function LoadingSpinner({ size = 'sm' }: { size?: 'sm' | 'md' }) {
       className={`spinner-border spinner-border-${size} text-warning`}
       role="status"
       aria-label="Loading"
-      style={{ verticalAlign: 'middle' }}
+      style={{ verticalAlign: 'middle', color: 'var(--gold-600)' }}
     />
   )
 }
@@ -31,9 +36,9 @@ export function EmptyState({
 }) {
   return (
     <div className="empty-state">
-            <i className={`bi ${icon}`} aria-hidden />
-            <h3>{title}</h3>
-            {hint ? <p className="mb-0">{hint}</p> : null}
+      <i className={`bi ${icon}`} aria-hidden />
+      <h3>{title}</h3>
+      {hint ? <p className="mb-0">{hint}</p> : null}
     </div>
   )
 }

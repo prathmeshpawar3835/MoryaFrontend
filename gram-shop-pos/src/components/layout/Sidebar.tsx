@@ -107,7 +107,13 @@ const groups: Group[] = [
   },
 ]
 
-export function Sidebar() {
+export function Sidebar({
+  collapsed,
+  onToggleCollapsed,
+}: {
+  collapsed: boolean
+  onToggleCollapsed: () => void
+}) {
   const { user } = useAuth()
   const location = useLocation()
   const role = user?.role
@@ -132,13 +138,25 @@ export function Sidebar() {
 
   return (
     <aside className="sidebar">
-      <NavLink to="/dashboard" className="brand">
-        <span className="brand-mark">1G</span>
-        <div className="brand-text">
-          <strong>Gram Shop</strong>
-          <small>Jewellery POS</small>
-        </div>
-      </NavLink>
+      <div className="brand">
+        <NavLink to="/dashboard" className="d-flex align-items-center gap-2 text-decoration-none text-reset overflow-hidden">
+          <span className="brand-mark">1G</span>
+          <div className="brand-text">
+            <strong>Gram Shop</strong>
+            <small>Jewellery POS</small>
+          </div>
+        </NavLink>
+        <button
+          type="button"
+          className="sidebar-collapse-btn"
+          onClick={onToggleCollapsed}
+          title={collapsed ? 'Expand menu' : 'Collapse menu'}
+          aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
+          aria-expanded={!collapsed}
+        >
+          <i className={`bi ${collapsed ? 'bi-chevron-right' : 'bi-chevron-left'}`} />
+        </button>
+      </div>
 
       <div className="sidebar-search">
         <i className="bi bi-search" />
@@ -152,11 +170,19 @@ export function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        <NavLink to="/dashboard" className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}>
+        <NavLink
+          to="/dashboard"
+          title="Dashboard"
+          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
+        >
           <i className="bi bi-grid-1x2" />
           <span>Dashboard</span>
         </NavLink>
-        <NavLink to="/pos" className={({ isActive }) => `nav-link nav-link-pos ${isActive ? 'active' : ''}`}>
+        <NavLink
+          to="/pos"
+          title="Open POS"
+          className={({ isActive }) => `nav-link nav-link-pos ${isActive ? 'active' : ''}`}
+        >
           <i className="bi bi-lightning-charge" />
           <span>Open POS</span>
         </NavLink>
@@ -172,22 +198,25 @@ export function Sidebar() {
             <div key={group.label}>
               {isCurrentSection ? <div className="nav-section-title">{group.section}</div> : null}
               <details open={Boolean(navQuery) || isGroupActive || group.label.includes('POS')}>
-                <summary className={isGroupActive ? 'is-open' : ''}>
+                <summary className={isGroupActive ? 'is-open' : ''} title={group.label}>
                   <i className={`bi ${group.icon}`} />
                   <span>{group.label}</span>
                   <i className="bi bi-chevron-right chevron" />
                 </summary>
                 <div className="sidebar-sub-items">
-                  {group.items.map((item) => (
-                    <NavLink
-                      key={item.to}
-                      to={item.to}
-                      className={({ isActive }) => `nav-sub ${isActive ? 'active' : ''}`}
-                    >
-                      <i className={`bi ${item.icon}`} />
-                      <span>{item.label}</span>
-                    </NavLink>
-                  ))}
+                  <div className="sidebar-sub-items-inner">
+                    {group.items.map((item) => (
+                      <NavLink
+                        key={item.to}
+                        to={item.to}
+                        title={item.label}
+                        className={({ isActive }) => `nav-sub ${isActive ? 'active' : ''}`}
+                      >
+                        <i className={`bi ${item.icon}`} />
+                        <span>{item.label}</span>
+                      </NavLink>
+                    ))}
+                  </div>
                 </div>
               </details>
             </div>
@@ -196,7 +225,7 @@ export function Sidebar() {
       </nav>
 
       <div className="sidebar-footer">
-        <div className="sidebar-user">
+        <div className="sidebar-user" title={user?.fullName || user?.userName}>
           <div className="sidebar-user-avatar">{(user?.fullName || 'U').slice(0, 1).toUpperCase()}</div>
           <div>
             <strong>{user?.fullName || user?.userName}</strong>

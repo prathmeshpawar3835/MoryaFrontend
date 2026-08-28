@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Sidebar } from '../components/layout/Sidebar'
 import { TopNav } from '../components/layout/TopNav'
+import { SIDEBAR_COLLAPSED_KEY } from '../constants/storage'
 import { PageLoader } from '../components/common/Feedback'
 import { Modal } from '../components/common/Modal'
 import { FormField } from '../components/common/FormField'
@@ -20,10 +21,21 @@ export function MainLayout() {
   const { user, loading, refreshUser } = useAuth()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(
+    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1',
+  )
 
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname])
+
+  const toggleSidebarCollapsed = () => {
+    setSidebarCollapsed((v) => {
+      const next = !v
+      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0')
+      return next
+    })
+  }
   const form = useForm<Form>({
     resolver: zodResolver(changePasswordSchema),
     mode: 'onTouched',
@@ -43,8 +55,8 @@ export function MainLayout() {
   })
 
   return (
-    <div className={`app-shell ${menuOpen ? 'menu-open' : ''}`}>
-      <Sidebar />
+    <div className={`app-shell ${menuOpen ? 'menu-open' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
+      <Sidebar collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebarCollapsed} />
       <div className="app-main">
         <TopNav onMenu={() => setMenuOpen((v) => !v)} />
         <main className="app-content">
@@ -142,9 +154,9 @@ export function AuthLayout() {
       <aside className="auth-hero">
         <div className="auth-hero-mark">1G</div>
         <p className="auth-hero-kicker">Gram Shop Jewellery</p>
-        <h1>A calmer, faster counter for 1 gram jewellery.</h1>
+        <h1>The counter, composed.</h1>
         <p className="auth-hero-copy">
-          Sales, stock, customers, and receipts in one workspace — built for daily retail, not a generic admin panel.
+          Sales, stock, customers, and receipts in one quiet workspace — built for daily jewellery retail.
         </p>
         <ul className="auth-hero-points">
           <li><i className="bi bi-lightning-charge-fill" /> Instant sales entry</li>
