@@ -1,6 +1,7 @@
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
 import { loginSchema } from '../../validators/schemas'
 import { useAuth } from '../../context/AuthContext'
 import { FormField } from '../../components/common/FormField'
@@ -14,6 +15,7 @@ export function LoginPage() {
   const { login, user, loading } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
+  const [showPassword, setShowPassword] = useState(false)
   const form = useForm<Form>({
     resolver: zodResolver(loginSchema),
     defaultValues: { userName: '', password: '' },
@@ -41,11 +43,11 @@ export function LoginPage() {
         error={form.formState.errors.userName?.message}
       >
         <div className="input-group">
-          <span className="input-group-text bg-light text-muted border-end-0">
+          <span className="input-group-text">
             <i className="bi bi-person" />
           </span>
           <input
-            className={`form-control border-start-0 ${form.formState.errors.userName ? 'is-invalid' : ''}`}
+            className={`form-control ${form.formState.errors.userName ? 'is-invalid' : ''}`}
             placeholder="Enter username"
             autoComplete="username"
             {...form.register('userName')}
@@ -59,22 +61,30 @@ export function LoginPage() {
         error={form.formState.errors.password?.message}
       >
         <div className="input-group">
-          <span className="input-group-text bg-light text-muted border-end-0">
+          <span className="input-group-text">
             <i className="bi bi-lock" />
           </span>
           <input
-            type="password"
-            className={`form-control border-start-0 ${form.formState.errors.password ? 'is-invalid' : ''}`}
+            type={showPassword ? 'text' : 'password'}
+            className={`form-control ${form.formState.errors.password ? 'is-invalid' : ''}`}
             placeholder="Enter password"
             autoComplete="current-password"
             {...form.register('password')}
           />
+          <button
+            type="button"
+            className="input-group-text"
+            onClick={() => setShowPassword((v) => !v)}
+            aria-label={showPassword ? 'Hide password' : 'Show password'}
+          >
+            <i className={`bi ${showPassword ? 'bi-eye-slash' : 'bi-eye'}`} />
+          </button>
         </div>
       </FormField>
 
       <button
         type="submit"
-        className="btn btn-gold w-100 py-2 mt-2 fw-bold"
+        className="btn btn-gold w-100 py-2 mt-1"
         disabled={form.formState.isSubmitting}
       >
         {form.formState.isSubmitting ? (
@@ -83,12 +93,12 @@ export function LoginPage() {
             Signing in…
           </>
         ) : (
-          'Sign in'
+          'Sign in to Gram Shop'
         )}
       </button>
 
-      <div className="text-center mt-2">
-        <Link to="/forgot-password" className="text-decoration-none text-muted small fw-medium">
+      <div className="text-center mt-1">
+        <Link to="/forgot-password" className="text-decoration-none text-muted small fw-bold">
           Forgot your password?
         </Link>
       </div>

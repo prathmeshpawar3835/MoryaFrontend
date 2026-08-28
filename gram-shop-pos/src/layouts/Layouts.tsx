@@ -135,21 +135,21 @@ export function AuthLayout() {
     ? { title: 'Reset access', subtitle: 'Enter your username to generate a reset token' }
     : pathname.includes('reset')
       ? { title: 'Set a new password', subtitle: 'Use your token and choose a strong password' }
-      : { title: 'Welcome back', subtitle: 'Sign in to continue to your store counter' }
+      : { title: 'Welcome back', subtitle: 'Sign in to your jewellery counter' }
 
   return (
     <div className="auth-shell">
       <aside className="auth-hero">
         <div className="auth-hero-mark">1G</div>
         <p className="auth-hero-kicker">Gram Shop Jewellery</p>
-        <h1>Counter-ready POS for 1 gram jewellery retail.</h1>
+        <h1>A calmer, faster counter for 1 gram jewellery.</h1>
         <p className="auth-hero-copy">
-          Billing, inventory, customers, and store reports in one calm workspace built for daily counter work.
+          Sales, stock, customers, and receipts in one workspace — built for daily retail, not a generic admin panel.
         </p>
         <ul className="auth-hero-points">
-          <li><i className="bi bi-check2-circle" /> Fast sales entry with live totals</li>
-          <li><i className="bi bi-check2-circle" /> Store-wise stock and dues</li>
-          <li><i className="bi bi-check2-circle" /> Invoices, returns, and ledgers</li>
+          <li><i className="bi bi-lightning-charge-fill" /> Instant sales entry</li>
+          <li><i className="bi bi-gem" /> Store-wise stock &amp; dues</li>
+          <li><i className="bi bi-receipt" /> Ledgers, returns &amp; invoices</li>
         </ul>
       </aside>
       <div className="auth-panel">

@@ -31,9 +31,9 @@ export function EmptyState({
 }) {
   return (
     <div className="empty-state">
-      <i className={`bi ${icon}`} aria-hidden />
-      <h3>{title}</h3>
-      {hint ? <p>{hint}</p> : null}
+            <i className={`bi ${icon}`} aria-hidden />
+            <h3>{title}</h3>
+            {hint ? <p className="mb-0">{hint}</p> : null}
     </div>
   )
 }

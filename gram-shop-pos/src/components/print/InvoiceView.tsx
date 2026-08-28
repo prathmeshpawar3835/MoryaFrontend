@@ -31,8 +31,8 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
       <header className="invoice-head">
         <div>
           <div className="d-flex align-items-center gap-2 mb-1">
-            <span className="badge bg-dark text-warning px-2 py-1 fs-6 fw-bold">1G</span>
-            <h1 className="h4 fw-bold text-navy-900 mb-0">{invoice.shopName}</h1>
+            <span className="brand-mark" style={{ width: 36, height: 36, fontSize: '0.95rem' }}>1G</span>
+            <h1 className="h4 text-navy-900 mb-0" style={{ fontFamily: 'var(--font-display)', fontWeight: 650 }}>{invoice.shopName}</h1>
           </div>
           <p className="mb-1 text-muted small">{invoice.businessAddress}</p>
           <p className="mb-1 text-muted small">
@@ -46,7 +46,7 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
           ) : null}
         </div>
         <div className="text-end">
-          <div className="badge bg-warning text-dark px-3 py-1 fs-6 fw-bold mb-2">TAX INVOICE</div>
+            <span className="badge rounded-pill px-3 py-2 mb-2 d-inline-block" style={{ background: 'linear-gradient(135deg,#f0d36a,#d4af4a)', color: '#1a1403' }}>TAX INVOICE</span>
           <div className="fw-bold fs-5 text-navy-900 font-monospace">{invoice.invoiceNumber}</div>
           <div className="text-muted small mb-1">{formatDateTime(invoice.invoiceDate)}</div>
           <div className="fw-semibold text-dark">{invoice.storeName}</div>

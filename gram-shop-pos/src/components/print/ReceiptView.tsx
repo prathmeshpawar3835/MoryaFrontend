@@ -29,8 +29,8 @@ export function ReceiptView({
       <header className="invoice-head">
         <div>
           <div className="d-flex align-items-center gap-2 mb-1">
-            <span className="badge bg-dark text-warning px-2 py-1 fs-6 fw-bold">1G</span>
-            <h1 className="h4 fw-bold text-navy-900 mb-0">{shopName}</h1>
+            <span className="brand-mark" style={{ width: 36, height: 36, fontSize: '0.95rem' }}>1G</span>
+            <h1 className="h4 text-navy-900 mb-0" style={{ fontFamily: 'var(--font-display)', fontWeight: 650 }}>{shopName}</h1>
           </div>
         </div>
         <div className="text-end">

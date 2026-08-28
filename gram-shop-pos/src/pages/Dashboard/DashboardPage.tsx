@@ -10,8 +10,8 @@ import { formatDateTime } from '../../utils/format'
 import { BILL_STATUS_LABELS } from '../../constants/labels'
 import { canAccess } from '../../constants/permissions'
 
-const COLORS = ['#0f2744', '#c9a227', '#2f6f8f', '#6b7280', '#2f9e6b']
-const CHART = { grid: '#ece7dc', axis: '#8a8478', tooltip: { borderRadius: 12, border: '1px solid #e8e4d9', boxShadow: '0 8px 24px rgba(15,23,42,0.08)' } }
+const COLORS = ['#121b32', '#d4af4a', '#2f6f8f', '#8f6a1d', '#1f8a5b']
+const CHART = { grid: '#eee8dc', axis: '#8a8478', tooltip: { borderRadius: 14, border: '1px solid #e6e1d4', boxShadow: '0 12px 28px rgba(18,27,50,0.1)', fontFamily: 'Manrope, sans-serif' } }
 
 function greeting() {
   const h = new Date().getHours()
@@ -175,15 +175,15 @@ export function DashboardPage() {
                 <AreaChart data={d.salesChartData} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#c9a227" stopOpacity={0.35} />
-                      <stop offset="100%" stopColor="#c9a227" stopOpacity={0.02} />
+                      <stop offset="0%" stopColor="#d4af4a" stopOpacity={0.42} />
+                      <stop offset="100%" stopColor="#d4af4a" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
                   <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke={CHART.axis} fontSize={12} />
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Sales']} contentStyle={CHART.tooltip} />
-                  <Area type="monotone" dataKey="sales" stroke="#c9a227" strokeWidth={2.5} fill="url(#salesFill)" />
+                  <Area type="monotone" dataKey="sales" stroke="#b8892a" strokeWidth={2.8} fill="url(#salesFill)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -231,7 +231,7 @@ export function DashboardPage() {
                   <YAxis type="category" dataKey="productName" width={130} stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']} contentStyle={CHART.tooltip} />
                   <Legend />
-                  <Bar dataKey="revenue" name="Revenue" fill="#0b1d33" radius={[0, 4, 4, 0]} />
+                  <Bar dataKey="revenue" name="Revenue" fill="#121b32" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -252,7 +252,7 @@ export function DashboardPage() {
                   <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke={CHART.axis} fontSize={12} />
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Referral sales']} contentStyle={CHART.tooltip} />
-                  <Line type="monotone" dataKey="sales" stroke="#173b68" strokeWidth={3} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="sales" stroke="#1b2744" strokeWidth={3} dot={{ r: 3, fill: '#d4af4a' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -272,8 +272,8 @@ export function DashboardPage() {
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip contentStyle={CHART.tooltip} />
                   <Legend />
-                  <Bar dataKey="exchangeAmount" name="Exchange" fill="#d4af37" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="returnAmount" name="Return" fill="#64748b" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="exchangeAmount" name="Exchange" fill="#d4af4a" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="returnAmount" name="Return" fill="#243456" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
