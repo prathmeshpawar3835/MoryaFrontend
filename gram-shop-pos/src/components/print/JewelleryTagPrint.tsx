@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { productUnitApi } from '../../api/productUnitApi'
 import type { ProductUnit } from '../../types'
 import { formatMoney } from '../../utils/format'
+import { qrDataUrl } from '../../utils/qr'
 
 const STORAGE_KEY = 'gramshop.tagSize'
 
@@ -40,12 +41,15 @@ export function JewelleryTagPrint({
       const qrs: Record<number, string> = {}
       const bars: Record<number, string> = {}
       for (const unit of units) {
-        const [qr, bar] = await Promise.all([productUnitApi.qrBlob(unit.id), productUnitApi.barcodeBlob(unit.id)])
-        const qrUrl = URL.createObjectURL(qr)
-        const barUrl = URL.createObjectURL(bar)
-        created.push(qrUrl, barUrl)
-        qrs[unit.id] = qrUrl
-        bars[unit.id] = barUrl
+        qrs[unit.id] = await qrDataUrl(unit.uniqueNumber, 192)
+        try {
+          const bar = await productUnitApi.barcodeBlob(unit.id)
+          const barUrl = URL.createObjectURL(bar)
+          created.push(barUrl)
+          bars[unit.id] = barUrl
+        } catch {
+          /* barcode is optional on the printed tag */
+        }
       }
       if (!cancelled) {
         setQrUrls(qrs)
@@ -61,8 +65,8 @@ export function JewelleryTagPrint({
   }, [units])
 
   const ready = useMemo(
-    () => units.every((u) => qrUrls[u.id] && barcodeUrls[u.id]),
-    [units, qrUrls, barcodeUrls],
+    () => units.every((u) => Boolean(qrUrls[u.id])),
+    [units, qrUrls],
   )
 
   return (

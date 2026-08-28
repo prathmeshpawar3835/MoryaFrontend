@@ -7,6 +7,7 @@ import { useStore } from '../../context/StoreContext'
 import { toastApiError } from '../../utils/errors'
 import { formatMoney } from '../../utils/format'
 import { JewelleryTagPrint, saveTagSize, tagSize } from '../../components/print/JewelleryTagPrint'
+import { downloadQrPng, qrDataUrl } from '../../utils/qr'
 import type { ProductUnit } from '../../types'
 
 export function ProductUnitsPanel({ productId }: { productId: number }) {
@@ -31,10 +32,16 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
 
   const showPreview = async (unit: ProductUnit) => {
     try {
-      const [qr, barcode] = await Promise.all([productUnitApi.qrBlob(unit.id), productUnitApi.barcodeBlob(unit.id)])
-      setPreview({ id: unit.id, qr: URL.createObjectURL(qr), barcode: URL.createObjectURL(barcode) })
+      const qr = await qrDataUrl(unit.uniqueNumber, 176)
+      let barcode = ''
+      try {
+        barcode = URL.createObjectURL(await productUnitApi.barcodeBlob(unit.id))
+      } catch {
+        barcode = ''
+      }
+      setPreview({ id: unit.id, qr, barcode })
     } catch (err: unknown) {
-      toastApiError(err, 'Could not load QR preview')
+      toastApiError(err, 'Could not generate QR code')
     }
   }
 
@@ -164,7 +171,11 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
                       <button
                         className="btn btn-sm btn-outline-secondary"
                         type="button"
-                        onClick={() => productUnitApi.downloadQr(unit.id, unit.uniqueNumber).catch((err) => toastApiError(err, 'Download failed'))}
+                        onClick={() =>
+                          downloadQrPng(unit.uniqueNumber, `${unit.uniqueNumber}.png`).catch((err) =>
+                            toastApiError(err, 'Could not generate QR code'),
+                          )
+                        }
                       >
                         Download
                       </button>
@@ -175,7 +186,9 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
                     {preview?.id === unit.id ? (
                       <div className="d-flex gap-3 mt-2 align-items-center">
                         <img src={preview.qr} alt="QR" style={{ width: 88, height: 88, background: '#fff' }} />
-                        <img src={preview.barcode} alt="Code128" style={{ height: 48, background: '#fff' }} />
+                        {preview.barcode ? (
+                          <img src={preview.barcode} alt="Code128" style={{ height: 48, background: '#fff' }} />
+                        ) : null}
                       </div>
                     ) : null}
                   </td>

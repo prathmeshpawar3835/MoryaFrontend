@@ -106,10 +106,16 @@ axiosClient.interceptors.response.use(
 
 export async function downloadResponse(response: AxiosResponse<Blob>, fallbackName: string) {
   const blob = response.data
-  if (blob.type.includes('application/json')) {
+  const type = blob.type || ''
+  if (type.includes('application/json') || type.includes('text/plain') || type.includes('text/html')) {
     const text = await blob.text()
-    const json = JSON.parse(text) as ApiResponse<unknown>
-    throw new Error(json.message || 'Download failed.')
+    try {
+      const json = JSON.parse(text) as ApiResponse<unknown>
+      throw new Error(json.message || 'Download failed.')
+    } catch (err) {
+      if (err instanceof SyntaxError) throw new Error('Download failed.')
+      throw err
+    }
   }
   const header = String(response.headers['content-disposition'] ?? '')
   const match = /filename\*?=(?:UTF-8'')?["']?([^"';]+)/i.exec(header)
@@ -118,6 +124,9 @@ export async function downloadResponse(response: AxiosResponse<Blob>, fallbackNa
   const a = document.createElement('a')
   a.href = url
   a.download = name
+  a.rel = 'noopener'
+  document.body.appendChild(a)
   a.click()
-  URL.revokeObjectURL(url)
+  a.remove()
+  window.setTimeout(() => URL.revokeObjectURL(url), 2000)
 }
