@@ -108,11 +108,11 @@ const groups: Group[] = [
 ]
 
 export function Sidebar({
-  collapsed,
-  onToggleCollapsed,
+  mobileOpen,
+  onClose,
 }: {
-  collapsed: boolean
-  onToggleCollapsed: () => void
+  mobileOpen: boolean
+  onClose: () => void
 }) {
   const { user } = useAuth()
   const location = useLocation()
@@ -134,105 +134,62 @@ export function Sidebar({
       .filter((g) => g.items.length)
   }, [role, navQuery])
 
-  let lastSection = ''
-
   return (
-    <aside className="sidebar">
-      <div className="brand">
-        <NavLink to="/dashboard" className="d-flex align-items-center gap-2 text-decoration-none text-reset overflow-hidden">
-          <span className="brand-mark">1G</span>
-          <div className="brand-text">
-            <strong>Gram Shop</strong>
-            <small>Jewellery POS</small>
-          </div>
-        </NavLink>
-        <button
-          type="button"
-          className="sidebar-collapse-btn"
-          onClick={onToggleCollapsed}
-          title={collapsed ? 'Expand menu' : 'Collapse menu'}
-          aria-label={collapsed ? 'Expand menu' : 'Collapse menu'}
-          aria-expanded={!collapsed}
-        >
-          <i className={`bi ${collapsed ? 'bi-chevron-right' : 'bi-chevron-left'}`} />
-        </button>
-      </div>
+    <header className={`masthead ${mobileOpen ? 'is-open' : ''}`}>
+      <NavLink to="/dashboard" className="mast-brand" onClick={onClose}>
+        <span className="brand-mark">1G</span>
+        <span className="brand-text">
+          <strong>Gram Shop</strong>
+          <small>Atelier POS</small>
+        </span>
+      </NavLink>
 
-      <div className="sidebar-search">
+      <div className="mast-search">
         <i className="bi bi-search" />
         <input
           type="search"
-          placeholder="Search menu…"
+          placeholder="Find a screen…"
           value={navQuery}
           onChange={(e) => setNavQuery(e.target.value)}
           aria-label="Search navigation"
         />
       </div>
 
-      <nav className="sidebar-nav">
-        <NavLink
-          to="/dashboard"
-          title="Dashboard"
-          className={({ isActive }) => `nav-link ${isActive ? 'active' : ''}`}
-        >
-          <i className="bi bi-grid-1x2" />
-          <span>Dashboard</span>
+      <nav className="mast-nav" aria-label="Primary">
+        <NavLink to="/dashboard" className={({ isActive }) => `mast-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+          Dashboard
         </NavLink>
-        <NavLink
-          to="/pos"
-          title="Open POS"
-          className={({ isActive }) => `nav-link nav-link-pos ${isActive ? 'active' : ''}`}
-        >
-          <i className="bi bi-lightning-charge" />
-          <span>Open POS</span>
+        <NavLink to="/pos" className={({ isActive }) => `mast-link mast-link-pos ${isActive ? 'active' : ''}`} onClick={onClose}>
+          Open POS
         </NavLink>
-
         {filteredGroups.map((group) => {
-          const isCurrentSection = group.section && group.section !== lastSection
-          if (group.section) lastSection = group.section
           const isGroupActive = group.items.some(
             (i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`),
           )
-
           return (
-            <div key={group.label}>
-              {isCurrentSection ? <div className="nav-section-title">{group.section}</div> : null}
-              <details open={Boolean(navQuery) || isGroupActive || group.label.includes('POS')}>
-                <summary className={isGroupActive ? 'is-open' : ''} title={group.label}>
-                  <i className={`bi ${group.icon}`} />
-                  <span>{group.label}</span>
-                  <i className="bi bi-chevron-right chevron" />
-                </summary>
-                <div className="sidebar-sub-items">
-                  <div className="sidebar-sub-items-inner">
-                    {group.items.map((item) => (
-                      <NavLink
-                        key={item.to}
-                        to={item.to}
-                        title={item.label}
-                        className={({ isActive }) => `nav-sub ${isActive ? 'active' : ''}`}
-                      >
-                        <i className={`bi ${item.icon}`} />
-                        <span>{item.label}</span>
-                      </NavLink>
-                    ))}
-                  </div>
-                </div>
-              </details>
+            <div key={group.label} className={`mast-drop ${isGroupActive ? 'is-active' : ''}`}>
+              <button type="button" className="mast-link" aria-haspopup="true">
+                <i className={`bi ${group.icon}`} />
+                <span>{group.label}</span>
+                <i className="bi bi-chevron-down mast-caret" />
+              </button>
+              <div className="mast-menu">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    className={({ isActive }) => `mast-item ${isActive ? 'active' : ''}`}
+                    onClick={onClose}
+                  >
+                    <i className={`bi ${item.icon}`} />
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
             </div>
           )
         })}
       </nav>
-
-      <div className="sidebar-footer">
-        <div className="sidebar-user" title={user?.fullName || user?.userName}>
-          <div className="sidebar-user-avatar">{(user?.fullName || 'U').slice(0, 1).toUpperCase()}</div>
-          <div>
-            <strong>{user?.fullName || user?.userName}</strong>
-            <small>{user?.role || 'Staff'}</small>
-          </div>
-        </div>
-      </div>
-    </aside>
+    </header>
   )
 }

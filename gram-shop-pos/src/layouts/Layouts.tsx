@@ -3,7 +3,6 @@ import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import { Sidebar } from '../components/layout/Sidebar'
 import { TopNav } from '../components/layout/TopNav'
-import { SIDEBAR_COLLAPSED_KEY } from '../constants/storage'
 import { PageLoader } from '../components/common/Feedback'
 import { Modal } from '../components/common/Modal'
 import { FormField } from '../components/common/FormField'
@@ -21,21 +20,10 @@ export function MainLayout() {
   const { user, loading, refreshUser } = useAuth()
   const location = useLocation()
   const [menuOpen, setMenuOpen] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(
-    () => localStorage.getItem(SIDEBAR_COLLAPSED_KEY) === '1',
-  )
 
   useEffect(() => {
     setMenuOpen(false)
   }, [location.pathname])
-
-  const toggleSidebarCollapsed = () => {
-    setSidebarCollapsed((v) => {
-      const next = !v
-      localStorage.setItem(SIDEBAR_COLLAPSED_KEY, next ? '1' : '0')
-      return next
-    })
-  }
   const form = useForm<Form>({
     resolver: zodResolver(changePasswordSchema),
     mode: 'onTouched',
@@ -55,14 +43,12 @@ export function MainLayout() {
   })
 
   return (
-    <div className={`app-shell ${menuOpen ? 'menu-open' : ''} ${sidebarCollapsed ? 'sidebar-collapsed' : ''}`}>
-      <Sidebar collapsed={sidebarCollapsed} onToggleCollapsed={toggleSidebarCollapsed} />
-      <div className="app-main">
-        <TopNav onMenu={() => setMenuOpen((v) => !v)} />
-        <main className="app-content">
-          <Outlet />
-        </main>
-      </div>
+    <div className={`atelier-shell ${menuOpen ? 'menu-open' : ''}`}>
+      <Sidebar mobileOpen={menuOpen} onClose={() => setMenuOpen(false)} />
+      <TopNav onMenu={() => setMenuOpen((v) => !v)} />
+      <main className="app-content">
+        <Outlet />
+      </main>
       {menuOpen ? (
         <button
           type="button"
@@ -152,17 +138,20 @@ export function AuthLayout() {
   return (
     <div className="auth-shell">
       <aside className="auth-hero">
-        <div className="auth-hero-mark">1G</div>
-        <p className="auth-hero-kicker">Gram Shop Jewellery</p>
-        <h1>The counter, composed.</h1>
-        <p className="auth-hero-copy">
-          Sales, stock, customers, and receipts in one quiet workspace — built for daily jewellery retail.
-        </p>
-        <ul className="auth-hero-points">
-          <li><i className="bi bi-lightning-charge-fill" /> Instant sales entry</li>
-          <li><i className="bi bi-gem" /> Store-wise stock &amp; dues</li>
-          <li><i className="bi bi-receipt" /> Ledgers, returns &amp; invoices</li>
-        </ul>
+        <div className="auth-hero-photo" aria-hidden />
+        <div className="auth-hero-copy-wrap">
+          <div className="auth-hero-mark">1G</div>
+          <p className="auth-hero-kicker">Gram Shop Jewellery</p>
+          <h1>Gold, measured. Sales, effortless.</h1>
+          <p className="auth-hero-copy">
+            A boutique counter for 1 gram jewellery — stock, customers, and receipts in one atelier workspace.
+          </p>
+          <ul className="auth-hero-points">
+            <li><i className="bi bi-lightning-charge-fill" /> Instant sales entry</li>
+            <li><i className="bi bi-gem" /> Store-wise stock &amp; dues</li>
+            <li><i className="bi bi-receipt" /> Ledgers, returns &amp; invoices</li>
+          </ul>
+        </div>
       </aside>
       <div className="auth-panel">
         <div className="auth-card">

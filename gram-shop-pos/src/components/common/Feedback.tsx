@@ -29,14 +29,16 @@ export function EmptyState({
   title,
   hint,
   icon = 'bi-inbox',
+  image = '/images/ui/empty.svg',
 }: {
   title: string
   hint?: string
   icon?: string
+  image?: string
 }) {
   return (
     <div className="empty-state">
-      <i className={`bi ${icon}`} aria-hidden />
+      {image ? <img src={image} alt="" /> : <i className={`bi ${icon}`} aria-hidden />}
       <h3>{title}</h3>
       {hint ? <p className="mb-0">{hint}</p> : null}
     </div>

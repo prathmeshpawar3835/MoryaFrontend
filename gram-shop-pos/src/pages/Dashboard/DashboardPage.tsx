@@ -10,8 +10,8 @@ import { formatDateTime } from '../../utils/format'
 import { BILL_STATUS_LABELS } from '../../constants/labels'
 import { canAccess } from '../../constants/permissions'
 
-const COLORS = ['#16181d', '#c4a35a', '#3d6a86', '#8c6f2e', '#1f8a5b']
-const CHART = { grid: '#eceef1', axis: '#8a93a0', tooltip: { borderRadius: 12, border: '1px solid #e4e6ea', boxShadow: '0 12px 28px rgba(22,24,29,0.1)', fontFamily: 'Outfit, sans-serif' } }
+const COLORS = ['#5c1c2e', '#c4a35a', '#8a5a18', '#3a101c', '#1f8a5b']
+const CHART = { grid: '#eadcc8', axis: '#7a6558', tooltip: { borderRadius: 14, border: '1px solid #e6d7c6', boxShadow: '0 12px 28px rgba(58,16,28,0.1)', fontFamily: 'Nunito Sans, sans-serif' } }
 
 function greeting() {
   const h = new Date().getHours()
@@ -35,9 +35,21 @@ export function DashboardPage() {
   const firstName = (user?.fullName || user?.userName || 'there').split(' ')[0]
   return (
     <>
+      <section
+        className="dash-hero"
+        style={{
+          backgroundImage:
+            "linear-gradient(90deg, rgba(58,16,28,0.82), rgba(58,16,28,0.2)), url('/images/ui/dash-banner.svg'), url('https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1600&q=70')",
+        }}
+      >
+        <div>
+          <h2>{greeting()}, {firstName}</h2>
+          <p>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        </div>
+      </section>
       <PageHeader
-        title={`${greeting()}, ${firstName}`}
-        subtitle={new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+        title="Showroom overview"
+        subtitle="Live sales, stock, and customer movement"
         actions={
           <div className="page-header-actions">
             <Link className="btn btn-pos-shortcut" to="/pos">
@@ -180,7 +192,7 @@ export function DashboardPage() {
                 <AreaChart data={d.salesChartData} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#c4a35a" stopOpacity={0.38} />
+                      <stop offset="0%" stopColor="#c4a35a" stopOpacity={0.4} />
                       <stop offset="100%" stopColor="#c4a35a" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
@@ -188,7 +200,7 @@ export function DashboardPage() {
                   <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke={CHART.axis} fontSize={12} />
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Sales']} contentStyle={CHART.tooltip} />
-                  <Area type="monotone" dataKey="sales" stroke="#b08a3e" strokeWidth={2.4} fill="url(#salesFill)" />
+                  <Area type="monotone" dataKey="sales" stroke="#8a5a18" strokeWidth={2.4} fill="url(#salesFill)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -236,7 +248,7 @@ export function DashboardPage() {
                   <YAxis type="category" dataKey="productName" width={130} stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']} contentStyle={CHART.tooltip} />
                   <Legend />
-                  <Bar dataKey="revenue" name="Revenue" fill="#16181d" radius={[0, 8, 8, 0]} />
+                  <Bar dataKey="revenue" name="Revenue" fill="#5c1c2e" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -257,7 +269,7 @@ export function DashboardPage() {
                   <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke={CHART.axis} fontSize={12} />
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Referral sales']} contentStyle={CHART.tooltip} />
-                  <Line type="monotone" dataKey="sales" stroke="#1e2128" strokeWidth={2.5} dot={{ r: 3, fill: '#c4a35a' }} />
+                  <Line type="monotone" dataKey="sales" stroke="#5c1c2e" strokeWidth={2.5} dot={{ r: 3, fill: '#c4a35a' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>

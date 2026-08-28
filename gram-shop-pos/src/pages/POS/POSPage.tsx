@@ -590,7 +590,7 @@ export function POSPage() {
                 {cart.length === 0 ? (
                   <tr>
                     <td colSpan={7} className="text-center text-muted py-5">
-                      <i className="bi bi-cart3 fs-1 d-block mb-2" />
+                      <img src="/images/ui/empty-cart.svg" alt="" width={96} height={96} className="mb-2" />
                       <div className="fw-semibold fs-5 text-navy-900">Cart is empty</div>
                       <small className="text-muted">Scan a barcode or search a product name above.</small>
                     </td>
