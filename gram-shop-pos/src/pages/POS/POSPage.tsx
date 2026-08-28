@@ -23,6 +23,7 @@ import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
 import { Modal } from '../../components/common/Modal'
 import { InvoiceView } from '../../components/print/InvoiceView'
 import { StoreSelector } from '../../components/common/StoreSelector'
+import { useAuth } from '../../context/AuthContext'
 import { productImageSrc } from '../../utils/media'
 
 interface CartLine {
@@ -273,7 +274,7 @@ export function POSPage() {
             product,
             quantity: 1,
             discountAmount: 0,
-            productUnitId: product.productUnitId,
+            productUnitId: product.productUnitId ?? undefined,
             uniqueNumber: product.uniqueNumber ?? undefined,
           },
         ]

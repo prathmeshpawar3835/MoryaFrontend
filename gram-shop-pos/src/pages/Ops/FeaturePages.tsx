@@ -373,7 +373,7 @@ export function RepairsPage() {
   const [paidNow, setPaidNow] = useState(0)
   const [payJob, setPayJob] = useState<RepairJob | null>(null)
   const [payAmount, setPayAmount] = useState(0)
-  const [payMode, setPayMode] = useState(PaymentMode.Cash)
+  const [payMode, setPayMode] = useState<number>(PaymentMode.Cash)
   const [payRef, setPayRef] = useState('')
   const [receiptJob, setReceiptJob] = useState<RepairJob | null>(null)
   const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined }
