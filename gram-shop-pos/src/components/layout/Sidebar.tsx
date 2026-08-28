@@ -160,6 +160,7 @@ export function Sidebar({
 
         <nav className="mast-nav" aria-label="Primary">
           <NavLink to="/dashboard" className={({ isActive }) => `mast-link ${isActive ? 'active' : ''}`} onClick={onClose}>
+            <i className="bi bi-speedometer2" />
             Dashboard
           </NavLink>
           <NavLink to="/pos" className={({ isActive }) => `mast-link mast-link-pos ${isActive ? 'active' : ''}`} onClick={onClose}>

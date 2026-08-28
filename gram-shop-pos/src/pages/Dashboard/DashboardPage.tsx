@@ -10,8 +10,8 @@ import { formatDateTime } from '../../utils/format'
 import { BILL_STATUS_LABELS } from '../../constants/labels'
 import { canAccess } from '../../constants/permissions'
 
-const COLORS = ['#173028', '#d4b06a', '#8a5a18', '#101816', '#1f8a5b']
-const CHART = { grid: '#ddd6c8', axis: '#6b746f', tooltip: { borderRadius: 14, border: '1px solid #ddd6c8', boxShadow: '0 12px 28px rgba(16,24,22,0.1)', fontFamily: 'Manrope, sans-serif' } }
+const COLORS = ['#2563eb', '#06b6d4', '#8b5cf6', '#16a34a', '#f59e0b']
+const CHART = { grid: '#e2e8f0', axis: '#64748b', tooltip: { borderRadius: 10, border: '1px solid #e2e8f0', boxShadow: '0 10px 24px rgba(15,23,42,0.1)', fontFamily: 'Inter, sans-serif' } }
 
 function greeting() {
   const h = new Date().getHours()
@@ -35,26 +35,20 @@ export function DashboardPage() {
   const firstName = (user?.fullName || user?.userName || 'there').split(' ')[0]
   return (
     <>
-      <section
-        className="dash-hero"
-        style={{
-          backgroundImage:
-            "linear-gradient(90deg, rgba(16,24,22,0.84), rgba(16,24,22,0.18)), url('/images/ui/dash-banner.svg'), url('https://images.unsplash.com/photo-1617038260897-41a1f14a8ca0?auto=format&fit=crop&w=1600&q=70')",
-        }}
-      >
+      <section className="dash-hero">
         <div>
           <h2>{greeting()}, {firstName}</h2>
           <p>{new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
         </div>
       </section>
       <PageHeader
-        title="Showroom overview"
-        subtitle="Live sales, stock, and customer movement"
+        title="Dashboard"
+        subtitle="Sales, stock, and customer movement"
         actions={
           <div className="page-header-actions">
-            <Link className="btn btn-pos-shortcut" to="/pos">
+            <Link className="btn btn-ghost" to="/pos">
               <i className="bi bi-lightning-charge-fill" />
-              <span>New sale</span>
+              <span>Quick Actions</span>
             </Link>
             {canAccess(user?.role, 'products.write') ? (
               <Link className="btn btn-ghost" to="/products/create">
@@ -73,7 +67,7 @@ export function DashboardPage() {
 
       <p className="dash-section">Today</p>
       <div className="kpi-grid">
-        <div className="kpi kpi-gold">
+        <div className="kpi kpi-green">
           <div className="kpi-header">
             <span>Today's sales</span>
             <div className="kpi-icon"><i className="bi bi-currency-rupee" /></div>
@@ -97,7 +91,7 @@ export function DashboardPage() {
           <strong><CurrencyDisplay value={d.pendingDues} /></strong>
           <small>Udhaar outstanding</small>
         </div>
-        <div className="kpi">
+        <div className="kpi kpi-purple">
           <div className="kpi-header">
             <span>Avg bill</span>
             <div className="kpi-icon"><i className="bi bi-receipt" /></div>
@@ -109,22 +103,22 @@ export function DashboardPage() {
 
       <p className="dash-section">Operations</p>
       <div className="kpi-grid kpi-grid-compact">
-        <div className="kpi">
+        <div className="kpi kpi-teal">
           <div className="kpi-header"><span>Returns</span><div className="kpi-icon"><i className="bi bi-arrow-return-left" /></div></div>
           <strong><CurrencyDisplay value={d.todayReturns ?? 0} /></strong>
           <small>{d.todayReturnCount ?? 0} today · month <CurrencyDisplay value={d.monthlyReturns ?? 0} /></small>
         </div>
-        <div className="kpi">
+        <div className="kpi kpi-cyan">
           <div className="kpi-header"><span>Exchanges</span><div className="kpi-icon"><i className="bi bi-arrow-left-right" /></div></div>
           <strong><CurrencyDisplay value={d.todayExchanges ?? 0} /></strong>
           <small>{d.todayExchangeCount ?? 0} today · month <CurrencyDisplay value={d.monthlyExchanges ?? 0} /></small>
         </div>
-        <div className="kpi">
+        <div className="kpi kpi-purple">
           <div className="kpi-header"><span>Buybacks</span><div className="kpi-icon"><i className="bi bi-bag-check" /></div></div>
           <strong><CurrencyDisplay value={d.todayBuybacks ?? 0} /></strong>
           <small>{d.todayBuybackCount ?? 0} today · month <CurrencyDisplay value={d.monthlyBuybacks ?? 0} /></small>
         </div>
-        <div className="kpi">
+        <div className="kpi kpi-navy">
           <div className="kpi-header"><span>Inventory</span><div className="kpi-icon"><i className="bi bi-box-seam" /></div></div>
           <strong>{d.totalInventoryQuantity ?? 0}</strong>
           <small>{d.totalInventoryProducts ?? 0} SKUs · {d.lowStockCount ?? 0} low</small>
@@ -133,7 +127,7 @@ export function DashboardPage() {
 
       <p className="dash-section">Referrals</p>
       <div className="kpi-grid kpi-grid-compact">
-        <div className="kpi">
+        <div className="kpi kpi-green">
           <div className="kpi-header"><span>Today's referrals</span><div className="kpi-icon"><i className="bi bi-gift" /></div></div>
           <strong>{d.todayReferralCount ?? 0}</strong>
           <small>Sales <CurrencyDisplay value={d.todayReferralSales ?? 0} /></small>
@@ -192,15 +186,15 @@ export function DashboardPage() {
                 <AreaChart data={d.salesChartData} margin={{ top: 10, right: 8, left: -18, bottom: 0 }}>
                   <defs>
                     <linearGradient id="salesFill" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0%" stopColor="#d4b06a" stopOpacity={0.4} />
-                      <stop offset="100%" stopColor="#d4b06a" stopOpacity={0.02} />
+                      <stop offset="0%" stopColor="#2563eb" stopOpacity={0.35} />
+                      <stop offset="100%" stopColor="#2563eb" stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke={CHART.grid} />
                   <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke={CHART.axis} fontSize={12} />
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Sales']} contentStyle={CHART.tooltip} />
-                  <Area type="monotone" dataKey="sales" stroke="#8a5a18" strokeWidth={2.4} fill="url(#salesFill)" />
+                  <Area type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={2.4} fill="url(#salesFill)" />
                 </AreaChart>
               </ResponsiveContainer>
             ) : (
@@ -248,7 +242,7 @@ export function DashboardPage() {
                   <YAxis type="category" dataKey="productName" width={130} stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Revenue']} contentStyle={CHART.tooltip} />
                   <Legend />
-                  <Bar dataKey="revenue" name="Revenue" fill="#173028" radius={[0, 8, 8, 0]} />
+                  <Bar dataKey="revenue" name="Revenue" fill="#2563eb" radius={[0, 8, 8, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -269,7 +263,7 @@ export function DashboardPage() {
                   <XAxis dataKey="date" tickFormatter={(v) => String(v).slice(5, 10)} stroke={CHART.axis} fontSize={12} />
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip formatter={(val: any) => [`₹${Number(val).toLocaleString('en-IN')}`, 'Referral sales']} contentStyle={CHART.tooltip} />
-                  <Line type="monotone" dataKey="sales" stroke="#173028" strokeWidth={2.5} dot={{ r: 3, fill: '#d4b06a' }} />
+                  <Line type="monotone" dataKey="sales" stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3, fill: '#06b6d4' }} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -289,8 +283,8 @@ export function DashboardPage() {
                   <YAxis stroke={CHART.axis} fontSize={12} />
                   <Tooltip contentStyle={CHART.tooltip} />
                   <Legend />
-                  <Bar dataKey="exchangeAmount" name="Exchange" fill="#d4b06a" radius={[6, 6, 0, 0]} />
-                  <Bar dataKey="returnAmount" name="Return" fill="#2a2e38" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="exchangeAmount" name="Exchange" fill="#2563eb" radius={[6, 6, 0, 0]} />
+                  <Bar dataKey="returnAmount" name="Return" fill="#94a3b8" radius={[6, 6, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>
             </div>
