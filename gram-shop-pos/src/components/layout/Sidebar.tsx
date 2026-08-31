@@ -141,7 +141,7 @@ export function Sidebar({
       <NavLink to="/dashboard" className="mast-brand" onClick={onClose}>
         <span className="brand-mark">1G</span>
         <span className="brand-text">
-          <strong>Gram Shop</strong>
+          <strong>GRAM SHOP</strong>
           <small>Jewellery POS</small>
         </span>
       </NavLink>

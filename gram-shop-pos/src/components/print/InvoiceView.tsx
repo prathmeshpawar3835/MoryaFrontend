@@ -70,6 +70,10 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
             <div className="small text-muted">Customer Code</div>
             <strong className="font-monospace">{invoice.customerCode || '—'}</strong>
           </div>
+          <div className="col-sm-6">
+            <div className="small text-muted">Referral Code</div>
+            <strong className="font-monospace">{invoice.customerReferralCode || '—'}</strong>
+          </div>
           {invoice.customerAddress ? (
             <div className="col-sm-6">
               <div className="small text-muted">Address</div>
@@ -107,7 +111,7 @@ export function InvoiceView({ invoice, thermal }: { invoice: Invoice; thermal?: 
             <strong>{invoice.referrerName || '—'}</strong>
           </div>
           <div className="d-flex justify-content-between small mb-1">
-            <span>Referral Code</span>
+            <span>Referrer Code Used</span>
             <strong className="font-monospace">{invoice.referrerCode || '—'}</strong>
           </div>
           {invoice.referralDiscountPercent ? (
