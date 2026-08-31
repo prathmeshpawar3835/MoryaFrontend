@@ -174,6 +174,8 @@ export interface Bill {
   customerId?: number | null
   customerName?: string | null
   customerMobile?: string | null
+  customerCode?: string | null
+  customerReferralCode?: string | null
   salesPersonId: number
   salesPersonName: string
   billNumber: string
@@ -318,6 +320,7 @@ export interface Invoice {
   customerMobile?: string | null
   customerAddress?: string | null
   customerCode?: string | null
+  customerReferralCode?: string | null
   customerDateOfBirth?: string | null
   salesPersonName?: string | null
   products: BillItem[]

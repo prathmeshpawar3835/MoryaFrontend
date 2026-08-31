@@ -290,7 +290,7 @@ export function CustomerProfilePage() {
     <>
       <PageHeader
         title={c.name}
-        subtitle={`Code ${c.customerCode || '—'} · Mobile: ${c.mobileNumber}`}
+        subtitle={`Code ${c.customerCode || '—'} · Referral ${c.referralCode || '—'} · Mobile: ${c.mobileNumber}`}
         actions={
           <div className="page-header-actions">
             <Link className="btn btn-gold" to={`/customers/${c.id}/ledger`}>
@@ -369,6 +369,13 @@ export function CustomerProfilePage() {
               <tr>
                 <th className="text-muted">Customer Code</th>
                 <td className="font-monospace fw-bold">{c.customerCode || '—'}</td>
+              </tr>
+              <tr>
+                <th className="text-muted">Referral Code</th>
+                <td>
+                  <span className="badge bg-navy font-monospace fs-6 px-3 py-2">{c.referralCode || '—'}</span>
+                  <div className="small text-muted mt-1">Share this unique code so others can refer you on billing.</div>
+                </td>
               </tr>
               <tr>
                 <th className="text-muted">Primary Mobile</th>

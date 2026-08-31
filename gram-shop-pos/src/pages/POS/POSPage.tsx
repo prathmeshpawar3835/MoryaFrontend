@@ -969,7 +969,8 @@ export function POSPage() {
               <div className="pos-customer-card">
                 <div className="fw-bold text-navy-900">{customer.name}</div>
                 <div className="small text-muted">
-                  {customer.mobileNumber} · Code {customer.customerCode || customer.referralCode}
+                  {customer.mobileNumber} · Code {customer.customerCode || '—'}
+                  {customer.referralCode ? ` · Referral ${customer.referralCode}` : ''}
                 </div>
                 <div className="d-flex flex-wrap gap-2 mt-2">
                   <span className="badge bg-primary-subtle text-primary border">

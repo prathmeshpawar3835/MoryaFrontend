@@ -140,7 +140,7 @@ export function TopNav() {
     .slice(0, 2)
 
   return (
-    <header className="topnav">
+    <div className="topnav">
       <div className="topnav-page">
         {crumbs(location.pathname).length > 1 ? (
           <span className="topnav-crumbs">
@@ -353,6 +353,6 @@ export function TopNav() {
           </table>
         </div>
       </Modal>
-    </header>
+    </div>
   )
 }
