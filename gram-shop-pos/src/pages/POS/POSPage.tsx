@@ -599,7 +599,7 @@ export function POSPage() {
                     <td colSpan={7} className="text-center text-muted py-5">
                       <img src="/images/ui/empty-cart.svg" alt="" width={96} height={96} className="mb-2" />
                       <div className="fw-semibold fs-5 text-navy-900">Cart is empty</div>
-                      <small className="text-muted">Scan a barcode or search a product name above.</small>
+                      <small className="text-muted">Scan a unique number QR or search a product name above. Tagged pieces keep their own selling price.</small>
                     </td>
                   </tr>
                 ) : (

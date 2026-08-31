@@ -1,6 +1,6 @@
 import { axiosClient, downloadResponse } from './axiosClient'
 import { cleanParams } from '../utils/query'
-import type { PagedResponse, Product, ProductUnit, ProductUnitListQuery } from '../types'
+import type { PagedResponse, Product, ProductUnit, ProductUnitListQuery, UpdateProductUnitRequest } from '../types'
 
 export const productUnitApi = {
   list: async (query: ProductUnitListQuery) =>
@@ -12,6 +12,8 @@ export const productUnitApi = {
         skipErrorToast: true,
       })
     ).data,
+  update: async (id: number, body: UpdateProductUnitRequest) =>
+    (await axiosClient.put<ProductUnit>(`/product-units/${id}`, body)).data,
   qrBlob: async (id: number) =>
     (await axiosClient.get<Blob>(`/product-units/${id}/qr`, { responseType: 'blob' })).data,
   barcodeBlob: async (id: number) =>

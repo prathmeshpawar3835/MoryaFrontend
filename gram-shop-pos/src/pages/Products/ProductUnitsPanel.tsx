@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
-import { useQuery } from '@tanstack/react-query'
+import { useEffect, useMemo, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import toast from 'react-hot-toast'
 import { productUnitApi } from '../../api/productUnitApi'
 import { queryKeys } from '../../api/queryKeys'
+import { useAuth } from '../../context/AuthContext'
 import { useStore } from '../../context/StoreContext'
+import { canAccess } from '../../constants/permissions'
 import { toastApiError } from '../../utils/errors'
 import { formatMoney } from '../../utils/format'
 import { JewelleryTagPrint, saveTagSize, tagSize } from '../../components/print/JewelleryTagPrint'
@@ -12,6 +14,8 @@ import type { ProductUnit } from '../../types'
 
 export function ProductUnitsPanel({ productId }: { productId: number }) {
   const { selectedStoreId } = useStore()
+  const { user } = useAuth()
+  const canWrite = canAccess(user?.role, 'products.write')
   const [selected, setSelected] = useState<number[]>([])
   const [size, setSize] = useState(tagSize)
   const [printUnits, setPrintUnits] = useState<ProductUnit[] | null>(null)
@@ -26,6 +30,7 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
   const units = q.data?.items ?? []
   const allIds = useMemo(() => units.map((u) => u.id), [units])
   const chosen = selected.length ? selected : allIds
+  const colSpan = canWrite ? 7 : 6
 
   const toggle = (id: number) =>
     setSelected((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
@@ -48,9 +53,15 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
   return (
     <div className="card-panel mt-3">
       <div className="d-flex flex-wrap justify-content-between gap-2 align-items-center mb-3">
-        <h2 className="mb-0">
-          <i className="bi bi-qr-code text-gold" /> Piece Unique Numbers
-        </h2>
+        <div>
+          <h2 className="mb-1">
+            <i className="bi bi-qr-code text-gold" /> Piece Unique Numbers
+          </h2>
+          <p className="text-muted small mb-0">
+            Each tagged piece can have its own MRP and selling price. New stock starts at this product&apos;s price; change any
+            piece below so ten rings (or any category) can sell at ten different rates.
+          </p>
+        </div>
         <div className="d-flex flex-wrap gap-2">
           <label className="small text-muted d-flex align-items-center gap-1 mb-0">
             Tag W mm
@@ -137,14 +148,16 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
               <th>Status</th>
               <th>MRP</th>
               <th>Selling</th>
+              {canWrite ? <th>Purchase</th> : null}
               <th>Actions</th>
             </tr>
           </thead>
           <tbody>
             {units.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-muted text-center py-4">
-                  No tagged pieces yet. Create or import stock as whole pieces (PCS) to generate unique numbers.
+                <td colSpan={colSpan} className="text-muted text-center py-4">
+                  No tagged pieces yet. Create or import stock as whole pieces (PCS) to generate unique numbers. After that,
+                  set a different selling price on each piece if needed.
                 </td>
               </tr>
             ) : (
@@ -161,8 +174,14 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
                       {unit.statusName}
                     </span>
                   </td>
-                  <td>{formatMoney(unit.mrp)}</td>
-                  <td>{formatMoney(unit.sellingPrice)}</td>
+                  {canWrite ? (
+                    <PiecePriceCells unit={unit} listQuery={query} />
+                  ) : (
+                    <>
+                      <td>{formatMoney(unit.mrp)}</td>
+                      <td>{formatMoney(unit.sellingPrice)}</td>
+                    </>
+                  )}
                   <td>
                     <div className="d-flex flex-wrap gap-1">
                       <button className="btn btn-sm btn-outline-secondary" type="button" onClick={() => void showPreview(unit)}>
@@ -208,5 +227,83 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
         />
       ) : null}
     </div>
+  )
+}
+
+function PiecePriceCells({ unit, listQuery }: { unit: ProductUnit; listQuery: object }) {
+  const qc = useQueryClient()
+  const [mrp, setMrp] = useState(String(unit.mrp))
+  const [selling, setSelling] = useState(String(unit.sellingPrice))
+  const [purchase, setPurchase] = useState(String(unit.purchasePrice ?? 0))
+
+  useEffect(() => {
+    setMrp(String(unit.mrp))
+    setSelling(String(unit.sellingPrice))
+    setPurchase(String(unit.purchasePrice ?? 0))
+  }, [unit.id, unit.mrp, unit.sellingPrice, unit.purchasePrice])
+
+  const dirty =
+    Number(mrp) !== unit.mrp || Number(selling) !== unit.sellingPrice || Number(purchase) !== (unit.purchasePrice ?? 0)
+
+  const save = useMutation({
+    mutationFn: () =>
+      productUnitApi.update(unit.id, {
+        mrp: Number(mrp),
+        sellingPrice: Number(selling),
+        purchasePrice: Number(purchase),
+      }),
+    onSuccess: async () => {
+      toast.success(`${unit.uniqueNumber} price saved`)
+      await qc.invalidateQueries({ queryKey: queryKeys.productUnits(listQuery) })
+    },
+    onError: (err: unknown) => toastApiError(err, 'Could not save piece price'),
+  })
+
+  return (
+    <>
+      <td>
+        <input
+          className="form-control form-control-sm"
+          style={{ width: 110 }}
+          type="number"
+          min={0}
+          step="any"
+          value={mrp}
+          onChange={(e) => setMrp(e.target.value)}
+        />
+      </td>
+      <td>
+        <div className="d-flex align-items-center gap-1">
+          <input
+            className="form-control form-control-sm"
+            style={{ width: 110 }}
+            type="number"
+            min={0}
+            step="any"
+            value={selling}
+            onChange={(e) => setSelling(e.target.value)}
+          />
+          <button
+            className="btn btn-sm btn-gold"
+            type="button"
+            disabled={!dirty || save.isPending || Number.isNaN(Number(mrp)) || Number.isNaN(Number(selling))}
+            onClick={() => save.mutate()}
+          >
+            Save
+          </button>
+        </div>
+      </td>
+      <td>
+        <input
+          className="form-control form-control-sm"
+          style={{ width: 110 }}
+          type="number"
+          min={0}
+          step="any"
+          value={purchase}
+          onChange={(e) => setPurchase(e.target.value)}
+        />
+      </td>
+    </>
   )
 }

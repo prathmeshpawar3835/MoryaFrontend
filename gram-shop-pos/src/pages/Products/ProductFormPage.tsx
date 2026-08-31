@@ -257,6 +257,7 @@ export function ProductFormPage() {
             <FormField
               label="Selling Price (₹)"
               required
+              hint="Default for new tagged pieces. Each unique number can then have its own selling price."
               error={form.formState.errors.sellingPrice?.message}
             >
               <input

@@ -188,10 +188,17 @@ export interface ProductUnit {
   createdDate: string
   productName: string
   categoryName: string
+  purchasePrice: number
   mrp: number
   sellingPrice: number
   weightGrams?: number | null
   metal?: string | null
+}
+
+export interface UpdateProductUnitRequest {
+  sellingPrice: number
+  mrp: number
+  purchasePrice?: number | null
 }
 
 export interface ProductUnitListQuery extends PagedQuery {
