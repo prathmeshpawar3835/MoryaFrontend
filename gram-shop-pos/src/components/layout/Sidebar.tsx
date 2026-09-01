@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { useAuth } from '../../context/AuthContext'
 import { canAccess, type FeatureKey } from '../../constants/permissions'
@@ -120,6 +120,27 @@ export function Sidebar({
   const location = useLocation()
   const role = user?.role
   const [navQuery, setNavQuery] = useState('')
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const navRef = useRef<HTMLElement>(null)
+
+  useEffect(() => {
+    setOpenMenu(null)
+  }, [location.pathname])
+
+  useEffect(() => {
+    const onDoc = (event: MouseEvent) => {
+      if (!navRef.current?.contains(event.target as Node)) setOpenMenu(null)
+    }
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setOpenMenu(null)
+    }
+    document.addEventListener('mousedown', onDoc)
+    document.addEventListener('keydown', onKey)
+    return () => {
+      document.removeEventListener('mousedown', onDoc)
+      document.removeEventListener('keydown', onKey)
+    }
+  }, [])
 
   const filteredGroups = useMemo(() => {
     const q = navQuery.trim().toLowerCase()
@@ -158,7 +179,7 @@ export function Sidebar({
           />
         </div>
 
-        <nav className="mast-nav" aria-label="Primary">
+        <nav className="mast-nav" aria-label="Primary" ref={navRef}>
           <NavLink to="/dashboard" className={({ isActive }) => `mast-link ${isActive ? 'active' : ''}`} onClick={onClose}>
             <i className="bi bi-speedometer2" />
             Dashboard
@@ -171,14 +192,28 @@ export function Sidebar({
             const isGroupActive = group.items.some(
               (i) => location.pathname === i.to || location.pathname.startsWith(`${i.to}/`),
             )
+            const isOpen = openMenu === group.label
             return (
-              <div key={group.label} className={`mast-drop ${isGroupActive ? 'is-active' : ''}`}>
-                <button type="button" className="mast-link" aria-haspopup="true" aria-expanded={isGroupActive}>
+              <div
+                key={group.label}
+                className={`mast-drop ${isGroupActive ? 'is-active' : ''} ${isOpen ? 'is-open' : ''}`}
+              >
+                <button
+                  type="button"
+                  className="mast-link"
+                  aria-haspopup="true"
+                  aria-expanded={isOpen || isGroupActive}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    e.stopPropagation()
+                    setOpenMenu(isOpen ? null : group.label)
+                  }}
+                >
                   <i className={`bi ${group.icon}`} />
                   <span>{group.label}</span>
                   <i className="bi bi-chevron-down mast-caret" />
                 </button>
-                <div className="mast-menu">
+                <div className="mast-menu" role="menu">
                   {group.items.map((item) => (
                     <NavLink
                       key={item.to}

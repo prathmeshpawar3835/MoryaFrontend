@@ -66,9 +66,10 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
   color: #fff;
   position: sticky;
   top: 0;
-  z-index: 50;
+  z-index: 80;
   min-height: var(--mast-height);
   height: var(--mast-height);
+  overflow: visible;
   box-shadow: 0 1px 0 rgba(212, 175, 74, 0.35), 0 8px 24px rgba(8, 16, 40, 0.28);
   flex-wrap: nowrap;
 }
@@ -124,20 +125,19 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
 
 .mast-drawer {
   display: flex; align-items: stretch; gap: 0; flex: 1; min-width: 0;
+  overflow: visible;
 }
 .mast-search { display: none; }
 .mast-nav {
-  display: flex; align-items: stretch; gap: 2px;
+  display: flex; align-items: stretch; gap: 0;
   flex: 1; min-width: 0; flex-wrap: nowrap;
-  padding: 0 0.35rem;
-  overflow-x: auto;
-  scrollbar-width: none;
+  padding: 0 0.2rem;
+  overflow: visible;
 }
-.mast-nav::-webkit-scrollbar { display: none; }
 .mast-link {
-  display: inline-flex; align-items: center; gap: 0.4rem;
+  display: inline-flex; align-items: center; gap: 0.32rem;
   border: 0; background: transparent; color: #dbe4f0;
-  padding: 0 0.78rem; height: 100%; border-radius: 0; font-size: 0.8rem; font-weight: 600;
+  padding: 0 0.58rem; height: 100%; border-radius: 0; font-size: 0.78rem; font-weight: 600;
   text-decoration: none; white-space: nowrap; cursor: pointer;
   position: relative; flex-shrink: 0;
   transition: background 140ms ease, color 140ms ease;
@@ -165,20 +165,24 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
 
 .mast-drop { position: relative; flex-shrink: 0; height: 100%; display: flex; }
 .mast-menu {
-  position: absolute; top: calc(100% - 1px); left: 0; min-width: 240px;
+  position: absolute; top: 100%; left: 0; min-width: 240px;
   background: #fff; color: var(--ink); border: 1px solid #e5eaf2;
   border-radius: 0 0 10px 10px; padding: 0.4rem;
   box-shadow: 0 16px 40px rgba(8, 16, 40, 0.18);
-  display: grid; gap: 0.08rem; opacity: 0; pointer-events: none; transform: translateY(4px);
-  transition: opacity 140ms ease, transform 140ms ease; z-index: 70;
+  display: grid; gap: 0.08rem;
+  opacity: 0; visibility: hidden; pointer-events: none; transform: translateY(4px);
+  transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
+  z-index: 200;
 }
 .mast-menu::before {
-  content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 10px;
+  content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 12px;
 }
-.mast-drop:hover .mast-menu, .mast-drop:focus-within .mast-menu {
-  opacity: 1; pointer-events: auto; transform: none;
+.mast-drop.is-open > .mast-menu,
+.mast-drop:hover > .mast-menu,
+.mast-drop:focus-within > .mast-menu {
+  opacity: 1; visibility: visible; pointer-events: auto; transform: none;
 }
-.mast-drop:nth-last-child(-n+2) .mast-menu { left: auto; right: 0; }
+.mast-drop:nth-last-child(-n+3) .mast-menu { left: auto; right: 0; }
 .mast-item {
   display: flex; align-items: center; gap: 0.6rem;
   padding: 0.55rem 0.75rem; border-radius: 8px; color: #334155; text-decoration: none; font-size: 0.84rem; font-weight: 500;
@@ -535,8 +539,12 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
 .sidebar-scrim { display: none; }
 .app-toast { font-family: var(--font-family) !important; }
 
-@media (max-width: 768px) {
-  .app-navbar { height: var(--mast-height); min-height: var(--mast-height); flex-wrap: nowrap; }
+@media (max-width: 1400px) {
+  .mast-link > i:not(.mast-caret) { display: none; }
+  .mast-link { padding: 0 0.5rem; font-size: 0.75rem; }
+}
+@media (max-width: 1100px) {
+  .app-navbar { height: var(--mast-height); min-height: var(--mast-height); flex-wrap: nowrap; overflow: visible; }
   .masthead { flex: 1 1 auto; min-height: var(--mast-height); min-width: 0; }
   .brand-text { display: block; }
   .mast-link > i:not(.mast-caret) { display: inline-flex; }
@@ -544,7 +552,7 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
   .mast-drawer {
     display: none; position: fixed; left: 0; right: 0; top: var(--mast-height);
     background: var(--paper); padding: 0.85rem; flex-direction: column; align-items: stretch;
-    z-index: 55; max-height: calc(100vh - var(--mast-height)); overflow: auto; gap: 0.75rem;
+    z-index: 90; max-height: calc(100vh - var(--mast-height)); overflow: auto; gap: 0.75rem;
     border-bottom: 1px solid var(--line); box-shadow: var(--shadow-md);
   }
   .atelier-shell.menu-open .mast-drawer { display: flex; animation: rise 200ms var(--ease); }
@@ -554,6 +562,7 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
     width: 100%; border: 1px solid var(--line); background: var(--stone);
     color: var(--ink); border-radius: 8px; padding: 0.45rem 0.7rem 0.45rem 1.9rem; font-size: 0.84rem;
   }
+  .mast-nav { flex-wrap: wrap; overflow: auto; }
   .mast-drop { height: auto; display: block; }
   .mast-link { text-transform: none; letter-spacing: 0; font-size: 0.9rem; border-radius: 8px; color: var(--ink); padding: 0.6rem 0.8rem; height: auto; }
   .mast-link i { color: var(--gold-600); }
@@ -563,13 +572,13 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
   .mast-link-pos { color: #fff !important; background: var(--navy-900); }
   .mast-link-pos:hover, .mast-link-pos.active { background: var(--gold-600); color: #fff !important; }
   .mast-drop .mast-menu {
-    position: static; opacity: 1; pointer-events: auto; transform: none;
+    position: static; opacity: 1; visibility: visible; pointer-events: auto; transform: none;
     box-shadow: none; background: var(--stone); border: 0; left: 0; right: auto;
   }
   .mast-menu::before { display: none; }
   .mast-item { color: var(--ink); }
   .mast-item:hover, .mast-item.active { background: #fff; color: var(--navy-900); }
-  .sidebar-scrim { display: block; position: fixed; inset: 0; top: var(--mast-height); background: rgba(12,23,51,0.4); z-index: 45; border: none; }
+  .sidebar-scrim { display: block; position: fixed; inset: 0; top: var(--mast-height); background: rgba(12,23,51,0.4); z-index: 85; border: none; }
   .topnav { flex: 0 0 auto; height: 100%; min-height: var(--mast-height); padding: 0 0.7rem 0 0.35rem; border-left: 0; justify-content: flex-end; }
   .navbar-store-switch { min-width: 128px; max-width: 156px; }
   .navbar-store-switch-label { display: none; }
@@ -579,7 +588,6 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
   .pos-actions { position: sticky; bottom: 0; background: var(--paper); padding-top: 0.6rem; }
 }
 @media (max-width: 1280px) {
-  .mast-link { padding: 0 0.62rem; font-size: 0.76rem; }
   .navbar-store-switch { min-width: 148px; max-width: 176px; }
   .store-select { min-width: 120px; }
   .btn-profile-info { display: none !important; }
