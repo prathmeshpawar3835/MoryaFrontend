@@ -157,10 +157,7 @@ export function TopNav() {
         <strong>{pageTitle(location.pathname)}</strong>
       </div>
 
-      <div className="topnav-store-badge">
-        <i className="bi bi-geo-alt-fill topnav-store-icon" />
-        <StoreSelector />
-      </div>
+      <StoreSelector variant="navbar" />
 
       <div className="topnav-spacer" />
 

@@ -501,9 +501,7 @@ export function POSPage() {
           </span>
         </Link>
 
-        <div className="topnav-store-badge pos-store">
-          <StoreSelector allowAll={false} />
-        </div>
+        <StoreSelector variant="navbar" allowAll={false} />
 
         <div className="search-wrapper">
           <i className="bi bi-upc-scan" />
