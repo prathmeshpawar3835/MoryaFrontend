@@ -14,6 +14,7 @@ import { DataTable } from '../../components/tables/DataTable'
 import { FormField } from '../../components/common/FormField'
 import { Modal } from '../../components/common/Modal'
 import { formatDateTime, formatMoney } from '../../utils/format'
+import { ledgerSides } from '../../utils/ledger'
 import { toastApiError } from '../../utils/errors'
 import { ITEM_STATUS_LABELS, REPAIR_STATUS_LABELS, REPAIR_TYPE_LABELS } from '../../constants/labels'
 import { DiscountKind, OfferCategory, PaymentMode, RepairJobStatus, RepairJobType } from '../../types'
@@ -42,9 +43,10 @@ export function CustomerLedgerSearchPage() {
                 <tr>
                   <th>Name</th>
                   <th>Mobile</th>
-                  <th>Code</th>
-                  <th>Credit</th>
-                  <th>Due</th>
+                  <th>Customer code</th>
+                  <th>Referral code</th>
+                  <th>Reward wallet</th>
+                  <th>Overdue / Credit</th>
                   <th />
                 </tr>
               </thead>
@@ -53,9 +55,17 @@ export function CustomerLedgerSearchPage() {
                   <tr key={c.id}>
                     <td className="fw-bold">{c.name}</td>
                     <td>{c.mobileNumber}</td>
-                    <td className="font-monospace">{c.customerCode || c.referralCode}</td>
+                    <td className="font-monospace">{c.customerCode || '—'}</td>
+                    <td className="font-monospace">{c.referralCode || '—'}</td>
                     <td><CurrencyDisplay value={c.walletBalance} /></td>
-                    <td><CurrencyDisplay value={c.outstandingBalance} /></td>
+                    <td>
+                      {(() => {
+                        const sides = ledgerSides(c.outstandingBalance, c.totalDebit ?? 0, c.totalCredit ?? 0)
+                        if (sides.overdue > 0) return <span className="text-danger fw-semibold">Overdue <CurrencyDisplay value={sides.overdue} /></span>
+                        if (sides.advance > 0) return <span className="text-success fw-semibold">Credit <CurrencyDisplay value={sides.advance} /></span>
+                        return <CurrencyDisplay value={0} />
+                      })()}
+                    </td>
                     <td>
                       <button className="btn btn-sm btn-gold" type="button" onClick={() => navigate(`/customers/${c.id}/ledger`)}>
                         Open ledger

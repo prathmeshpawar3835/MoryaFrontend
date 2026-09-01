@@ -560,6 +560,10 @@ html, body, #root { height: 100%; margin: 0; font-family: var(--font-family); ba
   .masthead, .sidebar, .topnav, .app-navbar, .print-toolbar, .pos-top, .pos-actions, .filter-bar, .page-header-actions, .pager, .no-print, .jewellery-tag-print-toolbar, .dash-hero { display: none !important; }
   .atelier-shell, .app-shell { display: block; }
   .app-content { height: auto; overflow: visible; padding: 0; animation: none; }
+  body:has(.jewellery-tag-print-overlay) * { visibility: hidden !important; }
+  body:has(.jewellery-tag-print-overlay) .jewellery-tag-print-overlay,
+  body:has(.jewellery-tag-print-overlay) .jewellery-tag-print-overlay * { visibility: visible !important; }
+  body:has(.jewellery-tag-print-overlay) .jewellery-tag-print-overlay { position: absolute; inset: 0; background: #fff; padding: 0; }
 }
 
 .jewellery-tag-print-overlay { position: fixed; inset: 0; z-index: 1080; background: #fff; overflow: auto; padding: 1rem; }

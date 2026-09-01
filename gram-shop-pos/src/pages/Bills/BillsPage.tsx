@@ -96,6 +96,7 @@ export function BillsPage() {
             <td>
               <div className="fw-semibold text-dark">{b.customerName || <span className="text-muted fst-italic">Walk-in</span>}</div>
               {b.customerMobile ? <div className="small text-muted font-monospace">{b.customerMobile}</div> : null}
+              {b.customerCode ? <div className="small text-muted font-monospace">Code {b.customerCode}</div> : null}
               {b.customerReferralCode ? <div className="small text-muted">Referral {b.customerReferralCode}</div> : null}
             </td>
             <td>

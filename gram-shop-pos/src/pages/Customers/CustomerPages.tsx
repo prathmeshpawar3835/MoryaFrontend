@@ -16,6 +16,7 @@ import { DataTable } from '../../components/tables/DataTable'
 import { Modal } from '../../components/common/Modal'
 import { FormField } from '../../components/common/FormField'
 import { formatDateTime, formatMoney } from '../../utils/format'
+import { ledgerSides } from '../../utils/ledger'
 import { toastApiError } from '../../utils/errors'
 import { LEDGER_TYPE_LABELS, PAYMENT_LABELS, REFERRAL_STATUS_LABELS } from '../../constants/labels'
 import { PaymentMode } from '../../types'
@@ -127,9 +128,24 @@ export function CustomersPage() {
               )}
             </td>
             <td>
-              <span className={c.outstandingBalance > 0 ? 'text-danger fw-bold' : 'text-muted'}>
-                <CurrencyDisplay value={c.outstandingBalance} />
-              </span>
+              {(() => {
+                const sides = ledgerSides(c.outstandingBalance, c.totalDebit ?? 0, c.totalCredit ?? 0)
+                if (sides.overdue > 0) {
+                  return (
+                    <span className="text-danger fw-bold">
+                      Overdue <CurrencyDisplay value={sides.overdue} />
+                    </span>
+                  )
+                }
+                if (sides.advance > 0) {
+                  return (
+                    <span className="text-success fw-semibold">
+                      Credit <CurrencyDisplay value={sides.advance} />
+                    </span>
+                  )
+                }
+                return <span className="text-muted"><CurrencyDisplay value={0} /></span>
+              })()}
             </td>
             <td>
               <span className="text-success fw-semibold">
@@ -283,6 +299,7 @@ export function CustomerProfilePage() {
   const history = useQuery({ queryKey: queryKeys.customerHistory(customerId), queryFn: () => customerApi.history(customerId) })
   const wallet = useQuery({ queryKey: queryKeys.customerWallet(customerId), queryFn: () => customerApi.wallet(customerId) })
   const c = customer.data
+  const sides = ledgerSides(c?.outstandingBalance ?? 0, c?.totalDebit ?? 0, c?.totalCredit ?? 0)
 
   if (!c) return <PageHeader title="Customer Profile" />
 
@@ -306,20 +323,38 @@ export function CustomerProfilePage() {
       <div className="kpi-grid">
         <div className="kpi">
           <div className="kpi-header">
-            <span>Outstanding Balance</span>
-            <div className="kpi-icon text-danger bg-danger-subtle"><i className="bi bi-wallet2" /></div>
+            <span>Ledger Debit</span>
+            <div className="kpi-icon text-danger bg-danger-subtle"><i className="bi bi-arrow-up-right" /></div>
           </div>
-          <strong className={c.outstandingBalance > 0 ? 'text-danger' : 'text-dark'}>
-            <CurrencyDisplay value={c.outstandingBalance} />
+          <strong className="text-danger">
+            <CurrencyDisplay value={c.totalDebit ?? 0} />
           </strong>
         </div>
         <div className="kpi">
           <div className="kpi-header">
-            <span>Available Credit Balance</span>
+            <span>Ledger Credit</span>
+            <div className="kpi-icon text-success bg-success-subtle"><i className="bi bi-arrow-down-left" /></div>
+          </div>
+          <strong className="text-success">
+            <CurrencyDisplay value={c.totalCredit ?? 0} />
+          </strong>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header">
+            <span>{sides.overdue > 0 ? 'Overdue' : 'Credit Balance'}</span>
+            <div className="kpi-icon text-navy-900 bg-light"><i className="bi bi-wallet2" /></div>
+          </div>
+          <strong className={sides.overdue > 0 ? 'text-danger' : 'text-success'}>
+            <CurrencyDisplay value={Math.max(sides.overdue, sides.advance)} />
+          </strong>
+        </div>
+        <div className="kpi">
+          <div className="kpi-header">
+            <span>Reward Wallet</span>
             <div className="kpi-icon text-success bg-success-subtle"><i className="bi bi-cash-coin" /></div>
           </div>
           <strong className="text-success">
-            <CurrencyDisplay value={c.walletBalance} />
+            <CurrencyDisplay value={wallet.data?.balance ?? c.walletBalance} />
           </strong>
         </div>
         <div className="kpi">
@@ -393,7 +428,21 @@ export function CustomerProfilePage() {
                 </td>
               </tr>
               <tr>
-                <th className="text-muted">Available Credit Balance</th>
+                <th className="text-muted">Ledger Debit</th>
+                <td className="fw-bold text-danger"><CurrencyDisplay value={c.totalDebit ?? 0} /></td>
+              </tr>
+              <tr>
+                <th className="text-muted">Ledger Credit</th>
+                <td className="fw-bold text-success"><CurrencyDisplay value={c.totalCredit ?? 0} /></td>
+              </tr>
+              <tr>
+                <th className="text-muted">{sides.overdue > 0 ? 'Overdue' : 'Ledger Credit Balance'}</th>
+                <td className={sides.overdue > 0 ? 'fw-bold text-danger' : 'fw-bold text-success'}>
+                  <CurrencyDisplay value={Math.max(sides.overdue, sides.advance)} />
+                </td>
+              </tr>
+              <tr>
+                <th className="text-muted">Reward Wallet</th>
                 <td className="fw-bold text-success"><CurrencyDisplay value={wallet.data?.balance ?? c.walletBalance} /></td>
               </tr>
               <tr>
@@ -484,6 +533,11 @@ export function CustomerLedgerPage() {
     queryFn: () => customerApi.ledgerReceipt(customerId, receiptId!),
     enabled: receiptId != null,
   })
+  const sides = ledgerSides(
+    summary.data?.currentBalance ?? customer.data?.outstandingBalance ?? 0,
+    summary.data?.totalDebit ?? customer.data?.totalDebit ?? 0,
+    summary.data?.totalCredit ?? customer.data?.totalCredit ?? 0,
+  )
 
   const pay = useMutation({
     mutationFn: () =>
@@ -509,7 +563,7 @@ export function CustomerLedgerPage() {
     <>
       <PageHeader
         title={`Account Ledger · ${customer.data?.name ?? ''}`}
-        subtitle={`${customer.data?.customerCode || ''} · Current Outstanding: ${formatMoney(customer.data?.outstandingBalance ?? 0)}`}
+        subtitle={`${customer.data?.customerCode || ''} · Referral ${customer.data?.referralCode || '—'} · ${sides.overdue > 0 ? `Overdue ${formatMoney(sides.overdue)}` : sides.advance > 0 ? `Credit ${formatMoney(sides.advance)}` : 'Settled'}`}
         actions={
           <div className="page-header-actions">
             <button className="btn btn-gold" type="button" onClick={() => setPayOpen(true)}>
@@ -539,8 +593,8 @@ export function CustomerLedgerPage() {
           <strong className="text-success">{formatMoney(summary.data?.totalCredit ?? 0)}</strong>
         </div>
         <div className="kpi">
-          <div className="kpi-header"><span>Outstanding / Credit Balance</span></div>
-          <strong>{formatMoney(summary.data?.currentBalance ?? customer.data?.outstandingBalance ?? 0)}</strong>
+          <div className="kpi-header"><span>{sides.overdue > 0 ? 'Overdue' : 'Credit Balance'}</span></div>
+          <strong className={sides.overdue > 0 ? 'text-danger' : 'text-success'}>{formatMoney(Math.max(sides.overdue, sides.advance))}</strong>
         </div>
       </div>
 
@@ -573,7 +627,7 @@ export function CustomerLedgerPage() {
         <div className="d-flex flex-wrap gap-4 small">
           <div>Total Debit: <strong>{formatMoney(summary.data?.totalDebit ?? 0)}</strong></div>
           <div>Total Credit: <strong>{formatMoney(summary.data?.totalCredit ?? 0)}</strong></div>
-          <div>Outstanding/Credit Balance: <strong>{formatMoney(summary.data?.currentBalance ?? 0)}</strong></div>
+          <div>{sides.overdue > 0 ? 'Overdue' : 'Credit balance'}: <strong>{formatMoney(Math.max(sides.overdue, sides.advance))}</strong></div>
         </div>
       </div>
 
@@ -592,14 +646,21 @@ export function CustomerLedgerPage() {
                 { label: 'Store contact', value: receipt.data.storeContact || '—' },
                 { label: 'Customer', value: receipt.data.customerName },
                 { label: 'Customer code', value: receipt.data.customerCode },
+                { label: 'Referral code', value: receipt.data.referralCode || customer.data?.referralCode || '—' },
                 { label: 'Mobile', value: receipt.data.mobileNumber },
                 { label: 'Transaction number', value: receipt.data.transactionNumber },
                 { label: 'Date and time', value: formatDateTime(receipt.data.transactionDate) },
                 { label: 'Transaction type', value: receipt.data.transactionType },
                 { label: 'Amount', value: formatMoney(receipt.data.amount) },
+                { label: 'Debit', value: formatMoney(receipt.data.debit) },
+                { label: 'Credit', value: formatMoney(receipt.data.credit) },
+                { label: 'Running balance', value: formatMoney(receipt.data.balance) },
+                { label: 'Overdue', value: formatMoney(receipt.data.overdueAmount ?? Math.max(0, receipt.data.balance)) },
+                { label: 'Credit balance', value: formatMoney(receipt.data.advanceCredit ?? Math.max(0, -receipt.data.balance)) },
                 { label: 'Payment mode', value: receipt.data.paymentMode || '—' },
                 { label: 'Reference number', value: receipt.data.referenceNumber || '—' },
                 { label: 'Received by', value: receipt.data.receivedBy || '—' },
+                { label: 'Description', value: receipt.data.description || '—' },
               ]}
             />
           </>
@@ -618,8 +679,13 @@ export function CustomerLedgerPage() {
           }}
         >
           <div className="p-3 bg-light rounded-3 mb-2">
-            <span className="text-muted small d-block">Current Balance Due</span>
-            <strong className="fs-5 text-danger">{formatMoney(customer.data?.outstandingBalance ?? 0)}</strong>
+            <span className="text-muted small d-block">{sides.overdue > 0 ? 'Current overdue' : 'Current credit balance'}</span>
+            <strong className={`fs-5 ${sides.overdue > 0 ? 'text-danger' : 'text-success'}`}>
+              {formatMoney(Math.max(sides.overdue, sides.advance))}
+            </strong>
+            <div className="small text-muted mt-1">
+              Debit {formatMoney(sides.totalDebit)} · Credit {formatMoney(sides.totalCredit)}
+            </div>
           </div>
 
           <FormField label="Payment Amount (₹)" required>

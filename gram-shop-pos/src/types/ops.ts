@@ -390,6 +390,10 @@ export interface Customer {
   referredByCustomerId?: number | null
   referredByName?: string | null
   outstandingBalance: number
+  totalDebit?: number
+  totalCredit?: number
+  overdueAmount?: number
+  advanceCredit?: number
   walletBalance: number
   isActive: boolean
   hasCompletedSale?: boolean
@@ -437,6 +441,8 @@ export interface LedgerSummary {
   totalDebit: number
   totalCredit: number
   currentBalance: number
+  overdueAmount?: number
+  advanceCredit?: number
 }
 
 export interface LedgerReceipt {
@@ -447,6 +453,7 @@ export interface LedgerReceipt {
   storeContact?: string | null
   customerName: string
   customerCode: string
+  referralCode?: string
   mobileNumber: string
   transactionNumber: string
   transactionDate: string
@@ -455,6 +462,8 @@ export interface LedgerReceipt {
   debit: number
   credit: number
   balance: number
+  overdueAmount?: number
+  advanceCredit?: number
   paymentMode?: string | null
   referenceNumber?: string | null
   receivedBy: string

@@ -99,7 +99,9 @@ export function ProductUnitsPanel({ productId }: { productId: number }) {
             className="btn btn-sm btn-outline-secondary"
             type="button"
             disabled={!chosen.length}
-            onClick={() => productUnitApi.downloadZip({ ids: chosen, productId }).catch((err) => toastApiError(err, 'ZIP download failed'))}
+            onClick={() =>
+              productUnitApi.downloadZip({ ids: [...new Set(chosen)], productId }).catch((err) => toastApiError(err, 'ZIP download failed'))
+            }
           >
             <i className="bi bi-download me-1" /> Download QRs
           </button>

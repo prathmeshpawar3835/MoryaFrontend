@@ -14,6 +14,7 @@ import { useDebounce } from '../../hooks/useDebounce'
 import { useHotkeys } from '../../hooks/useHotkeys'
 import { calculateBill } from '../../utils/billCalc'
 import { formatMoney } from '../../utils/format'
+import { ledgerSides } from '../../utils/ledger'
 import { toastApiError } from '../../utils/errors'
 import { creditOveruseMessage } from '../../utils/credit'
 import { applyAdminDeduction, deductionPercentFor } from '../../utils/deduction'
@@ -110,6 +111,13 @@ export function POSPage() {
   const walletQ = useQuery({
     queryKey: queryKeys.customerWallet(customer?.id ?? 0),
     queryFn: () => customerApi.wallet(customer!.id),
+    enabled: Boolean(customer),
+    staleTime: 15_000,
+  })
+
+  const ledgerSummaryQ = useQuery({
+    queryKey: queryKeys.customerLedgerSummary(customer?.id ?? 0),
+    queryFn: () => customerApi.ledgerSummary(customer!.id),
     enabled: Boolean(customer),
     staleTime: 15_000,
   })
@@ -250,6 +258,11 @@ export function POSPage() {
   const payableBeforeWallet = Math.max(0, Math.round((totals.grandTotal - adjustmentTotal) * 100) / 100)
   const creditGeneratedPreview = Math.max(0, Math.round((adjustmentTotal - totals.grandTotal) * 100) / 100)
   const availableCredit = walletQ.data?.balance ?? customer?.walletBalance ?? 0
+  const ledger = ledgerSides(
+    ledgerSummaryQ.data?.currentBalance ?? customer?.outstandingBalance ?? 0,
+    ledgerSummaryQ.data?.totalDebit ?? customer?.totalDebit ?? 0,
+    ledgerSummaryQ.data?.totalCredit ?? customer?.totalCredit ?? 0,
+  )
   const creditUsedPreview = Math.min(walletRedeem, payableBeforeWallet, availableCredit)
   const payable = Math.max(0, Math.round((payableBeforeWallet - creditUsedPreview) * 100) / 100)
   const remainingCreditPreview = Math.round((availableCredit - creditUsedPreview + creditGeneratedPreview) * 100) / 100
@@ -950,7 +963,8 @@ export function POSPage() {
                     <div>
                       <strong>{c.name}</strong> · {c.mobileNumber}
                     </div>
-                    <span className="badge bg-light text-dark border">{c.customerCode || c.referralCode}</span>
+                    <span className="badge bg-light text-dark border">{c.customerCode || '—'}</span>
+                    {c.referralCode ? <span className="badge bg-warning-subtle text-dark border font-monospace ms-1">{c.referralCode}</span> : null}
                   </button>
                 ))}
               </div>
@@ -969,12 +983,28 @@ export function POSPage() {
               <div className="pos-customer-card">
                 <div className="fw-bold text-navy-900">{customer.name}</div>
                 <div className="small text-muted">
-                  {customer.mobileNumber} · Code {customer.customerCode || '—'}
-                  {customer.referralCode ? ` · Referral ${customer.referralCode}` : ''}
+                  {customer.mobileNumber} · Code {customer.customerCode || '—'} · Referral {customer.referralCode || '—'}
                 </div>
                 <div className="d-flex flex-wrap gap-2 mt-2">
+                  <span className="badge bg-light text-dark border">
+                    Ledger debit: {formatMoney(ledger.totalDebit)}
+                  </span>
+                  <span className="badge bg-light text-dark border">
+                    Ledger credit: {formatMoney(ledger.totalCredit)}
+                  </span>
+                  {ledger.overdue > 0 ? (
+                    <span className="badge bg-danger-subtle text-danger border">
+                      Overdue: {formatMoney(ledger.overdue)}
+                    </span>
+                  ) : ledger.advance > 0 ? (
+                    <span className="badge bg-success-subtle text-success border">
+                      Ledger credit balance: {formatMoney(ledger.advance)}
+                    </span>
+                  ) : (
+                    <span className="badge bg-success-subtle text-success border">Overdue: {formatMoney(0)}</span>
+                  )}
                   <span className="badge bg-primary-subtle text-primary border">
-                    Available Credit: {formatMoney(availableCredit)}
+                    Reward wallet: {formatMoney(availableCredit)}
                   </span>
                   {creditGeneratedPreview > 0 ? (
                     <span className="badge bg-success-subtle text-success border">
@@ -987,10 +1017,7 @@ export function POSPage() {
                     </span>
                   ) : null}
                   <span className="badge bg-light text-dark border">
-                    Remaining Credit: {formatMoney(remainingCreditPreview)}
-                  </span>
-                  <span className={`badge ${customer.outstandingBalance > 0 ? 'bg-danger-subtle text-danger' : 'bg-success-subtle text-success'} border`}>
-                    Due: {formatMoney(customer.outstandingBalance)}
+                    Remaining wallet after this bill: {formatMoney(remainingCreditPreview)}
                   </span>
                   {eligibilityQ.data?.isBirthdayToday ? <span className="badge bg-warning text-dark">Birthday today</span> : null}
                 </div>
@@ -1033,7 +1060,7 @@ export function POSPage() {
           {customer ? (
             <div className="pos-credit-box">
               <div className="d-flex justify-content-between align-items-baseline mb-1">
-                <span className="small fw-bold text-navy-900">Customer Credit Available</span>
+                <span className="small fw-bold text-navy-900">Reward wallet available</span>
                 <strong className="text-success">{formatMoney(availableCredit)}</strong>
               </div>
               <label className="form-label small mb-1">Credit used on this invoice</label>
@@ -1067,7 +1094,7 @@ export function POSPage() {
             <label className="form-label">Referral / customer code</label>
             <input
               className="form-control form-control-sm"
-              placeholder="Existing customer code"
+              placeholder="Referral code or customer code"
               value={referralCode}
               onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
             />
@@ -1527,6 +1554,8 @@ function CompletedBill({ bill, onNew }: { bill: Bill; onNew: () => void }) {
             Invoice Number: <strong className="font-monospace">{bill.billNumber}</strong>
           </div>
           <div>Customer: {bill.customerName || 'Walk-in'}</div>
+          {bill.customerCode ? <div>Customer code: {bill.customerCode}</div> : null}
+          {bill.customerReferralCode ? <div>Referral code: {bill.customerReferralCode}</div> : null}
           {bill.customerMobile ? <div>Mobile: {bill.customerMobile}</div> : null}
           {bill.adjustments?.map((a) => (
             <div key={a.id} className="text-muted">
