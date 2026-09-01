@@ -489,12 +489,12 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
           <div className="form-section-title mt-4">
             <i className="bi bi-whatsapp text-gold" /> WhatsApp Cloud API
           </div>
-          <p className="small text-muted">Used to send automatic birthday wishes. Leave disabled if a provider is not configured — failed sends are logged and never block billing.</p>
+          <p className="small text-muted">Sends birthday wishes and invoice / return / exchange / buyback PDFs to the customer. Enable Cloud API so the PDF is attached automatically. If it is off, WhatsApp still opens and the PDF is downloaded for you to attach.</p>
           <div className="form-grid">
             <div className="col-12">
               <div className="form-check form-switch">
                 <input type="checkbox" className="form-check-input" id="waEn" checked={Boolean(data.whatsAppEnabled)} onChange={(e) => set('whatsAppEnabled', e.target.checked)} />
-                <label className="form-check-label fw-bold" htmlFor="waEn">Enable WhatsApp birthday messages</label>
+                <label className="form-check-label fw-bold" htmlFor="waEn">Enable WhatsApp Cloud API</label>
               </div>
             </div>
             <FormField label="Phone number ID">

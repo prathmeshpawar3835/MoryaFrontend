@@ -16,6 +16,7 @@ import { calculateBill } from '../../utils/billCalc'
 import { formatMoney } from '../../utils/format'
 import { ledgerSides } from '../../utils/ledger'
 import { toastApiError } from '../../utils/errors'
+import { deliverWhatsAppShare } from '../../utils/whatsapp'
 import { creditOveruseMessage } from '../../utils/credit'
 import { applyAdminDeduction, deductionPercentFor } from '../../utils/deduction'
 import { DiscountKind, PaymentMode, ReturnKind, RewardType } from '../../types'
@@ -1524,15 +1525,12 @@ function CompletedBill({ bill, onNew }: { bill: Bill; onNew: () => void }) {
   const [waError, setWaError] = useState<string | null>(null)
   const waMut = useMutation({
     mutationFn: () => billApi.sendWhatsApp(bill.id),
-    onSuccess: (share) => {
-      if (!share.shareUrl) {
-        setWaError(share.error || 'Invoice generated successfully, but WhatsApp sending failed.')
-        toast.error(share.error || 'Invoice generated successfully, but WhatsApp sending failed.')
-        return
-      }
+    onSuccess: async (share) => {
       setWaError(null)
-      window.open(share.shareUrl, '_blank', 'noopener,noreferrer')
-      toast.success('WhatsApp message opened for sending')
+      const ok = await deliverWhatsAppShare(share, () => billApi.invoicePdf(bill.id))
+      if (!ok) {
+        setWaError(share.error || 'Invoice generated successfully, but WhatsApp sending failed.')
+      }
     },
     onError: () => {
       setWaError('Invoice generated successfully, but WhatsApp sending failed.')
@@ -1567,7 +1565,7 @@ function CompletedBill({ bill, onNew }: { bill: Bill; onNew: () => void }) {
             <i className="bi bi-receipt me-1" /> View Invoice
           </button>
           <button type="button" className="btn btn-success" onClick={() => waMut.mutate()} disabled={waMut.isPending || !bill.customerMobile}>
-            {waMut.isPending ? 'Opening WhatsApp…' : 'Send Invoice on WhatsApp'}
+            {waMut.isPending ? 'Sending PDF…' : 'Send PDF on WhatsApp'}
           </button>
           <button type="button" className="btn btn-gold" onClick={() => window.print()}>
             <i className="bi bi-printer me-1" /> Print Invoice

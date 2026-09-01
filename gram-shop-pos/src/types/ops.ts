@@ -260,6 +260,7 @@ export interface ReturnRecord {
   reason?: string | null
   returnKind: ReturnKind
   exchangeBillId?: number | null
+  exchangeBillNumber?: string | null
   salesPersonId?: number | null
   salesPersonName?: string | null
   appliedToBillId?: number | null
@@ -369,6 +370,8 @@ export interface InvoiceDiscountLine {
 
 export interface WhatsAppShare {
   sent: boolean
+  documentAttached?: boolean
+  delivery?: string
   message: string
   shareUrl: string
   phone?: string | null

@@ -7,6 +7,7 @@ import { InvoiceView } from '../../components/print/InvoiceView'
 import { ConfirmDialog } from '../../components/common/Modal'
 import toast from 'react-hot-toast'
 import { toastApiError } from '../../utils/errors'
+import { deliverWhatsAppShare } from '../../utils/whatsapp'
 
 export function BillDetailPage() {
   const { id } = useParams()
@@ -33,17 +34,12 @@ export function BillDetailPage() {
             </button>
             <button type="button" className="btn btn-success" onClick={async () => {
               try {
-                const share = await billApi.sendWhatsApp(billId)
-                if (!share.shareUrl) {
-                  toast.error(share.error || 'Invoice generated successfully, but WhatsApp sending failed.')
-                  return
-                }
-                window.open(share.shareUrl, '_blank', 'noopener,noreferrer')
+                await deliverWhatsAppShare(await billApi.sendWhatsApp(billId), () => billApi.invoicePdf(billId))
               } catch {
                 toast.error('Invoice generated successfully, but WhatsApp sending failed.')
               }
             }}>
-              <i className="bi bi-whatsapp me-1" /> Send Invoice on WhatsApp
+              <i className="bi bi-whatsapp me-1" /> Send PDF on WhatsApp
             </button>
             <Link className="btn btn-outline-secondary" to={`/returns/new?billId=${billId}`}>
               <i className="bi bi-arrow-return-left me-1" /> Return

@@ -1,6 +1,6 @@
 import { axiosClient, downloadResponse } from './axiosClient'
 import { cleanParams } from '../utils/query'
-import type { CreateBuybackRequest, CreateExchangeRequest, CreateReturnRequest, ExchangeResult, PagedQuery, PagedResponse, ReturnRecord } from '../types'
+import type { CreateBuybackRequest, CreateExchangeRequest, CreateReturnRequest, ExchangeResult, PagedQuery, PagedResponse, ReturnRecord, WhatsAppShare } from '../types'
 
 export const returnApi = {
   create: async (body: CreateReturnRequest) => (await axiosClient.post<ReturnRecord>('/returns', body)).data,
@@ -11,6 +11,7 @@ export const returnApi = {
     const res = await axiosClient.get<Blob>(`/returns/${id}/pdf`, { responseType: 'blob' })
     await downloadResponse(res, `return-${id}.pdf`)
   },
+  sendWhatsApp: async (id: number) => (await axiosClient.post<WhatsAppShare>(`/returns/${id}/whatsapp`)).data,
   exchange: async (body: CreateExchangeRequest) => (await axiosClient.post<ExchangeResult>('/exchanges', body)).data,
   buyback: async (body: CreateBuybackRequest) => (await axiosClient.post<ReturnRecord>('/buybacks', body)).data,
 }

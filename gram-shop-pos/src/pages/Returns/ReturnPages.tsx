@@ -16,16 +16,26 @@ import { Modal } from '../../components/common/Modal'
 import { ReturnDocumentReceipt } from '../../components/print/ReceiptView'
 import { formatDateTime, formatMoney } from '../../utils/format'
 import { toastApiError } from '../../utils/errors'
+import { deliverWhatsAppShare } from '../../utils/whatsapp'
 import { applyAdminDeduction, deductionPercentFor } from '../../utils/deduction'
 import { ITEM_STATUS_LABELS, RETURN_KIND_LABELS } from '../../constants/labels'
 import { PaymentMode, ReturnKind } from '../../types'
 import type { Bill, Product } from '../../types'
+
+async function sendReturnPdfWhatsApp(id: number, hasMobile?: string | null) {
+  if (!hasMobile) {
+    toast.error('Customer mobile number is required to send WhatsApp.')
+    return
+  }
+  await deliverWhatsAppShare(await returnApi.sendWhatsApp(id), () => returnApi.pdf(id))
+}
 
 export function ReturnsListPage() {
   const { selectedStoreId } = useStore()
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(1)
   const [receiptId, setReceiptId] = useState<number | null>(null)
+  const [sendingId, setSendingId] = useState<number | null>(null)
   const query = { pageNumber: page, pageSize: 20, search, storeId: selectedStoreId ?? undefined }
   const q = useQuery({ queryKey: queryKeys.returns(query), queryFn: () => returnApi.list(query) })
   const receipt = useQuery({
@@ -107,6 +117,24 @@ export function ReturnsListPage() {
                 >
                   <i className="bi bi-file-earmark-pdf me-1" /> PDF
                 </button>
+                <button
+                  className="btn btn-sm btn-success"
+                  type="button"
+                  disabled={sendingId === r.id || !r.customerMobile}
+                  title="Send receipt PDF on WhatsApp"
+                  onClick={async () => {
+                    setSendingId(r.id)
+                    try {
+                      await sendReturnPdfWhatsApp(r.id, r.customerMobile)
+                    } catch (err) {
+                      toastApiError(err, 'WhatsApp PDF sending failed')
+                    } finally {
+                      setSendingId(null)
+                    }
+                  }}
+                >
+                  <i className="bi bi-whatsapp me-1" /> {sendingId === r.id ? 'Sending…' : 'WhatsApp'}
+                </button>
               </div>
             </td>
           </tr>
@@ -118,6 +146,23 @@ export function ReturnsListPage() {
             <div className="print-toolbar mb-2">
               <button className="btn btn-outline-secondary btn-sm" type="button" onClick={() => window.print()}>Print</button>
               <button className="btn btn-outline-secondary btn-sm" type="button" onClick={() => void returnApi.pdf(receipt.data!.id)}>Download PDF</button>
+              <button
+                className="btn btn-success btn-sm"
+                type="button"
+                disabled={sendingId === receipt.data.id || !receipt.data.customerMobile}
+                onClick={async () => {
+                  setSendingId(receipt.data!.id)
+                  try {
+                    await sendReturnPdfWhatsApp(receipt.data!.id, receipt.data!.customerMobile)
+                  } catch (err) {
+                    toastApiError(err, 'WhatsApp PDF sending failed')
+                  } finally {
+                    setSendingId(null)
+                  }
+                }}
+              >
+                <i className="bi bi-whatsapp me-1" /> {sendingId === receipt.data.id ? 'Sending…' : 'Send PDF on WhatsApp'}
+              </button>
             </div>
             <ReturnDocumentReceipt record={receipt.data} />
           </>
@@ -179,8 +224,15 @@ export function ReturnCreatePage() {
           .filter(([, q]) => q > 0)
           .map(([id, q]) => ({ originalBillItemId: Number(id), quantity: q })),
       }),
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       toast.success(`Return note ${r.returnNumber} generated successfully`)
+      try {
+        if (r.customerMobile) {
+          await sendReturnPdfWhatsApp(r.id, r.customerMobile)
+        }
+      } catch (err) {
+        toastApiError(err, 'Return saved. WhatsApp PDF could not be sent.')
+      }
       navigate('/returns')
     },
     onError: (err: any) => {
@@ -416,8 +468,15 @@ export function ExchangePage() {
         walletRedeemAmount: 0,
         payments: cash > 0 ? [{ paymentMode: PaymentMode.Cash, amount: cash }] : [],
       }),
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       toast.success(`Exchange completed successfully! Difference: ${formatMoney(r.differencePayable)}`)
+      try {
+        if (r.return.customerMobile) {
+          await sendReturnPdfWhatsApp(r.return.id, r.return.customerMobile)
+        }
+      } catch (err) {
+        toastApiError(err, 'Exchange saved. WhatsApp PDF could not be sent.')
+      }
       navigate(`/bills/${r.newBill.id}`)
     },
     onError: (err: any) => {
@@ -733,8 +792,15 @@ export function BuybackPage() {
           .filter(([, q]) => q > 0)
           .map(([id, q]) => ({ originalBillItemId: Number(id), quantity: q })),
       }),
-    onSuccess: (r) => {
+    onSuccess: async (r) => {
       toast.success(`Buyback ${r.returnNumber} generated successfully`)
+      try {
+        if (r.customerMobile) {
+          await sendReturnPdfWhatsApp(r.id, r.customerMobile)
+        }
+      } catch (err) {
+        toastApiError(err, 'Buyback saved. WhatsApp PDF could not be sent.')
+      }
       navigate('/returns')
     },
     onError: (err: any) => {

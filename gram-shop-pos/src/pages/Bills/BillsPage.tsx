@@ -10,6 +10,8 @@ import { DataTable } from '../../components/tables/DataTable'
 import { formatDateTime } from '../../utils/format'
 import { BILL_STATUS_LABELS, PAYMENT_LABELS } from '../../constants/labels'
 import { BillStatus } from '../../types'
+import { deliverWhatsAppShare } from '../../utils/whatsapp'
+import { toastApiError } from '../../utils/errors'
 
 export function BillsPage() {
   const { selectedStoreId } = useStore()
@@ -18,6 +20,7 @@ export function BillsPage() {
   const [from, setFrom] = useState('')
   const [to, setTo] = useState('')
   const [status, setStatus] = useState<number | ''>('')
+  const [sendingId, setSendingId] = useState<number | null>(null)
   const query = {
     pageNumber: page,
     pageSize: 20,
@@ -120,10 +123,30 @@ export function BillsPage() {
               </span>
             </td>
             <td>
-              <div className="d-flex gap-1">
+              <div className="d-flex gap-1 flex-wrap">
                 <Link className="btn btn-sm btn-outline-secondary" to={`/bills/${b.id}`} title="View Invoice">
                   <i className="bi bi-eye me-1" /> View
                 </Link>
+                {b.status !== BillStatus.Cancelled && b.customerMobile ? (
+                  <button
+                    className="btn btn-sm btn-success"
+                    type="button"
+                    disabled={sendingId === b.id}
+                    title="Send invoice PDF on WhatsApp"
+                    onClick={async () => {
+                      setSendingId(b.id)
+                      try {
+                        await deliverWhatsAppShare(await billApi.sendWhatsApp(b.id), () => billApi.invoicePdf(b.id))
+                      } catch (err) {
+                        toastApiError(err, 'WhatsApp PDF sending failed')
+                      } finally {
+                        setSendingId(null)
+                      }
+                    }}
+                  >
+                    <i className="bi bi-whatsapp me-1" /> {sendingId === b.id ? 'Sending…' : 'WhatsApp'}
+                  </button>
+                ) : null}
                 {b.status !== BillStatus.Cancelled ? (
                   <>
                     <Link className="btn btn-sm btn-outline-secondary" to={`/returns/new?billId=${b.id}`} title="Initiate Return">
