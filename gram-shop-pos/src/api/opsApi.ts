@@ -3,8 +3,8 @@ import { cleanParams } from '../utils/query'
 import type { BirthdayEligibility, PagedQuery, PagedResponse, StoreDiscount, StoreDiscountRequest, Supplier, SupplierRequest } from '../types'
 
 export const discountApi = {
-  list: async (storeId?: number | null, activeOnly = false, category?: number) =>
-    (await axiosClient.get<StoreDiscount[]>('/discounts', { params: cleanParams({ storeId, activeOnly, category }) })).data,
+  list: async (storeId?: number | null, activeOnly = false, category?: number, includeEcommerceOnly = false) =>
+    (await axiosClient.get<StoreDiscount[]>('/discounts', { params: cleanParams({ storeId, activeOnly, category, includeEcommerceOnly }) })).data,
   create: async (body: StoreDiscountRequest) => (await axiosClient.post<StoreDiscount>('/discounts', body)).data,
   update: async (id: number, body: StoreDiscountRequest) =>
     (await axiosClient.put<StoreDiscount>(`/discounts/${id}`, body)).data,

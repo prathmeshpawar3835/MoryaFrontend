@@ -103,6 +103,11 @@ export function LoginPage() {
           Forgot your password?
         </Link>
       </div>
+      <div className="text-center mt-3">
+        <Link to="/shop" className="text-decoration-none small fw-bold">
+          Visit the jewellery shop
+        </Link>
+      </div>
     </form>
   )
 }

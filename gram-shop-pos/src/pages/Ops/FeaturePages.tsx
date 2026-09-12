@@ -88,28 +88,51 @@ export function DiscountsPage() {
   const { selectedStoreId, stores } = useStore()
   const qc = useQueryClient()
   const [open, setOpen] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
   const [name, setName] = useState('')
+  const [description, setDescription] = useState('')
   const [kind, setKind] = useState<number>(DiscountKind.Percentage)
   const [value, setValue] = useState(0)
+  const [validFrom, setValidFrom] = useState('')
+  const [validTo, setValidTo] = useState('')
+  const [isActive, setIsActive] = useState(true)
+  const [ecommerceOnly, setEcommerceOnly] = useState(false)
   const q = useQuery({
     queryKey: queryKeys.discounts(selectedStoreId, false),
-    queryFn: () => discountApi.list(selectedStoreId, false),
+    queryFn: () => discountApi.list(selectedStoreId, false, undefined, true),
   })
-  const create = useMutation({
-    mutationFn: () =>
-      discountApi.create({
-        storeId: selectedStoreId ?? stores[0]?.storeId ?? 0,
-        name,
-        offerCategory: OfferCategory.Store,
-        discountKind: kind,
-        value,
-        isActive: true,
-      }),
+
+  const resetForm = (offer?: StoreDiscount) => {
+    setEditingId(offer?.id ?? null)
+    setName(offer?.name ?? '')
+    setDescription(offer?.description ?? '')
+    setKind(offer?.discountKind ?? DiscountKind.Percentage)
+    setValue(offer?.value ?? 0)
+    setValidFrom(offer?.validFrom ? offer.validFrom.slice(0, 10) : '')
+    setValidTo(offer?.validTo ? offer.validTo.slice(0, 10) : '')
+    setIsActive(offer?.isActive ?? true)
+    setEcommerceOnly(Boolean(offer?.ecommerceOnly))
+    setOpen(true)
+  }
+
+  const payload = {
+    storeId: selectedStoreId ?? stores[0]?.storeId ?? 0,
+    name,
+    description: description || undefined,
+    offerCategory: OfferCategory.Store,
+    discountKind: kind,
+    value,
+    validFrom: validFrom || undefined,
+    validTo: validTo || undefined,
+    isActive,
+    ecommerceOnly,
+  }
+
+  const save = useMutation({
+    mutationFn: () => (editingId ? discountApi.update(editingId, payload) : discountApi.create(payload)),
     onSuccess: async () => {
-      toast.success('Discount saved')
+      toast.success(editingId ? 'Discount updated' : 'Discount saved')
       setOpen(false)
-      setName('')
-      setValue(0)
       await qc.invalidateQueries({ queryKey: ['discounts'] })
     },
     onError: (err: any) => toastApiError(err, 'Failed to save discount'),
@@ -119,24 +142,35 @@ export function DiscountsPage() {
     <>
       <PageHeader
         title="Store Discounts"
-        subtitle="Configure store-wise billing discounts. Percentages are not hardcoded."
+        subtitle="POS discounts apply at the counter. Tick E-commerce only to show an offer on the customer website without changing POS billing."
         actions={
-          <button className="btn btn-gold" type="button" onClick={() => setOpen(true)}>
+          <button className="btn btn-gold" type="button" onClick={() => resetForm()}>
             Add discount
           </button>
         }
       />
-      <DataTable loading={q.isLoading} columns={['Name', 'Store', 'Value', 'Validity', 'Status', '']}>
+      <DataTable loading={q.isLoading} columns={['Name', 'Store', 'Value', 'Channel', 'Validity', 'Status', '']}>
         {q.data?.map((d) => (
           <tr key={d.id}>
-            <td className="fw-bold">{d.name}</td>
+            <td>
+              <div className="fw-bold">{d.name}</div>
+              {d.description ? <div className="small text-muted">{d.description}</div> : null}
+            </td>
             <td>{d.storeName}</td>
             <td>{d.discountKind === DiscountKind.Percentage ? `${d.value}%` : formatMoney(d.value)}</td>
+            <td>
+              <span className={`badge ${d.ecommerceOnly ? 'bg-warning-subtle text-dark' : 'bg-light text-dark border'}`}>
+                {d.ecommerceOnly ? 'E-commerce only' : 'POS'}
+              </span>
+            </td>
             <td className="small text-muted">{d.validFrom || d.validTo ? `${d.validFrom ?? '—'} → ${d.validTo ?? '—'}` : 'Always'}</td>
             <td>
               <span className={`badge ${d.isActive ? 'bg-success-subtle text-success' : 'bg-secondary'}`}>{d.isActive ? 'Active' : 'Inactive'}</span>
             </td>
-            <td>
+            <td className="text-nowrap">
+              <button className="btn btn-sm btn-outline-secondary me-1" type="button" onClick={() => resetForm(d)}>
+                Edit
+              </button>
               <button className="btn btn-sm btn-outline-danger" type="button" onClick={() => discountApi.remove(d.id).then(() => qc.invalidateQueries({ queryKey: ['discounts'] }))}>
                 Deactivate
               </button>
@@ -144,9 +178,12 @@ export function DiscountsPage() {
           </tr>
         ))}
       </DataTable>
-      <Modal open={open} title="New store discount" onClose={() => setOpen(false)}>
+      <Modal open={open} title={editingId ? 'Update discount' : 'New store discount'} onClose={() => setOpen(false)}>
         <FormField label="Name" required>
           <input className="form-control" value={name} onChange={(e) => setName(e.target.value)} />
+        </FormField>
+        <FormField label="Description">
+          <input className="form-control" value={description} onChange={(e) => setDescription(e.target.value)} />
         </FormField>
         <FormField label="Type">
           <select className="form-select" value={kind} onChange={(e) => setKind(Number(e.target.value))}>
@@ -157,7 +194,25 @@ export function DiscountsPage() {
         <FormField label="Value" required>
           <input className="form-control" type="number" min={0} value={value} onChange={(e) => setValue(Number(e.target.value))} />
         </FormField>
-        <button className="btn btn-gold mt-2" type="button" disabled={create.isPending} onClick={() => create.mutate()}>
+        <FormField label="Valid from">
+          <input className="form-control" type="date" value={validFrom} onChange={(e) => setValidFrom(e.target.value)} />
+        </FormField>
+        <FormField label="Valid to">
+          <input className="form-control" type="date" value={validTo} onChange={(e) => setValidTo(e.target.value)} />
+        </FormField>
+        <div className="form-check mt-2">
+          <input className="form-check-input" type="checkbox" id="discActive" checked={isActive} onChange={(e) => setIsActive(e.target.checked)} />
+          <label className="form-check-label" htmlFor="discActive">
+            Active
+          </label>
+        </div>
+        <div className="form-check mt-2">
+          <input className="form-check-input" type="checkbox" id="discEcom" checked={ecommerceOnly} onChange={(e) => setEcommerceOnly(e.target.checked)} />
+          <label className="form-check-label" htmlFor="discEcom">
+            E-commerce only (hidden from POS billing)
+          </label>
+        </div>
+        <button className="btn btn-gold mt-3" type="button" disabled={save.isPending} onClick={() => save.mutate()}>
           Save
         </button>
       </Modal>

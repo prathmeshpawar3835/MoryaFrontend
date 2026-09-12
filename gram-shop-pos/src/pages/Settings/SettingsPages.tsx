@@ -489,7 +489,7 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
           <div className="form-section-title mt-4">
             <i className="bi bi-whatsapp text-gold" /> WhatsApp Cloud API
           </div>
-          <p className="small text-muted">Sends birthday wishes and invoice / return / exchange / buyback PDFs to the customer. Enable Cloud API so the PDF is attached automatically. If it is off, WhatsApp still opens and the PDF is downloaded for you to attach.</p>
+          <p className="small text-muted">Sends birthday wishes, invoice documents, and e-commerce owner order alerts. Enable Cloud API for automatic delivery. Credentials are stored on the server only.</p>
           <div className="form-grid">
             <div className="col-12">
               <div className="form-check form-switch">
@@ -505,6 +505,9 @@ function SettingsForm({ section }: { section: 'billing' | 'tax' | 'referrals' | 
             </FormField>
             <FormField label="API base URL" hint="Defaults to https://graph.facebook.com/v21.0">
               <input className="form-control" value={data.whatsAppApiBaseUrl ?? ''} onChange={(e) => set('whatsAppApiBaseUrl', e.target.value)} placeholder="https://graph.facebook.com/v21.0" />
+            </FormField>
+            <FormField label="E-commerce order alert mobile" hint="Owner number for new online orders. Falls back to showroom mobile if empty. Credentials stay on the server.">
+              <input className="form-control" value={data.ecommerceNotifyMobile ?? ''} onChange={(e) => set('ecommerceNotifyMobile', e.target.value)} placeholder="WhatsApp number for order alerts" />
             </FormField>
           </div>
         </>

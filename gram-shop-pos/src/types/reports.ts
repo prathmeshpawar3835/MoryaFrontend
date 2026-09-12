@@ -213,6 +213,7 @@ export interface Settings {
   whatsAppPhoneNumberId?: string | null
   whatsAppAccessToken?: string | null
   whatsAppApiBaseUrl?: string | null
+  ecommerceNotifyMobile?: string | null
   taxSettings: TaxSetting[]
 }
 

@@ -58,7 +58,16 @@ const DiscountsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => 
 const BirthdayOffersPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.BirthdayOffersPage })))
 const SuppliersPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.SuppliersPage })))
 const RepairsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.RepairsPage })))
-const ProductAnalyticsPage = lazy(() => import('./pages/Ops/FeaturePages').then((m) => ({ default: m.ProductAnalyticsPage })))
+const ShopProviders = lazy(() => import('./shop/ShopLayout').then((m) => ({ default: m.ShopProviders })))
+const ShopHomePage = lazy(() => import('./shop/ShopHomePage').then((m) => ({ default: m.ShopHomePage })))
+const ShopCatalogPage = lazy(() => import('./shop/ShopCatalogPage').then((m) => ({ default: m.ShopCatalogPage })))
+const ShopProductPage = lazy(() => import('./shop/ShopProductPage').then((m) => ({ default: m.ShopProductPage })))
+const ShopCartPage = lazy(() => import('./shop/ShopCartPage').then((m) => ({ default: m.ShopCartPage })))
+const ShopCheckoutPage = lazy(() => import('./shop/ShopCheckoutPage').then((m) => ({ default: m.ShopCheckoutPage })))
+const ShopLoginPage = lazy(() => import('./shop/ShopLoginPage').then((m) => ({ default: m.ShopLoginPage })))
+const ShopAccountPage = lazy(() => import('./shop/ShopAccountPage').then((m) => ({ default: m.ShopAccountPage })))
+const ShopOrderPage = lazy(() => import('./shop/ShopOrderPage').then((m) => ({ default: m.ShopOrderPage })))
+const ShopOffersPage = lazy(() => import('./shop/ShopOffersPage').then((m) => ({ default: m.ShopOffersPage })))
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -90,6 +99,18 @@ export default function App() {
             />
             <Suspense fallback={<PageLoader />}>
               <Routes>
+                <Route element={<ShopProviders />}>
+                  <Route path="/shop" element={<ShopHomePage />} />
+                  <Route path="/shop/products" element={<ShopCatalogPage />} />
+                  <Route path="/shop/products/:id" element={<ShopProductPage />} />
+                  <Route path="/shop/offers" element={<ShopOffersPage />} />
+                  <Route path="/shop/cart" element={<ShopCartPage />} />
+                  <Route path="/shop/checkout" element={<ShopCheckoutPage />} />
+                  <Route path="/shop/login" element={<ShopLoginPage />} />
+                  <Route path="/shop/account" element={<ShopAccountPage />} />
+                  <Route path="/shop/orders/:id" element={<ShopOrderPage />} />
+                </Route>
+
                 <Route element={<AuthLayout />}>
                   <Route path="/login" element={<LoginPage />} />
                   <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -101,7 +122,6 @@ export default function App() {
                     <Route path="/pos" element={<POSPage />} />
                   </Route>
                   <Route element={<MainLayout />}>
-                    <Route path="/" element={<Navigate to="/dashboard" replace />} />
                     <Route path="/dashboard" element={<DashboardPage />} />
                     <Route path="/access-denied" element={<AccessDeniedPage />} />
                     <Route path="/pos/held" element={<HeldBillsPage />} />
@@ -170,7 +190,8 @@ export default function App() {
                     </Route>
                   </Route>
                 </Route>
-                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/" element={<Navigate to="/shop" replace />} />
+                <Route path="*" element={<Navigate to="/shop" replace />} />
               </Routes>
             </Suspense>
           </BrowserRouter>

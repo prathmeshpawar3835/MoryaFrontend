@@ -530,6 +530,7 @@ export interface StoreDiscount {
   validFrom?: string | null
   validTo?: string | null
   isActive: boolean
+  ecommerceOnly?: boolean
 }
 
 export interface StoreDiscountRequest {
@@ -542,6 +543,7 @@ export interface StoreDiscountRequest {
   validFrom?: string | null
   validTo?: string | null
   isActive: boolean
+  ecommerceOnly?: boolean
 }
 
 export interface BirthdayOfferSummary {

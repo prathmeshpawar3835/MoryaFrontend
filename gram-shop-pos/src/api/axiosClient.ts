@@ -88,9 +88,10 @@ axiosClient.interceptors.response.use(
                       : 'Something went wrong. Please try again.')
 
     const onLogin = window.location.pathname.startsWith('/login')
+    const onShop = window.location.pathname.startsWith('/shop')
     const hadToken = Boolean(localStorage.getItem(TOKEN_KEY))
 
-    if (status === 401 && hadToken && !onLogin) {
+    if (status === 401 && hadToken && !onLogin && !onShop) {
       localStorage.removeItem(TOKEN_KEY)
       localStorage.removeItem(USER_KEY)
       toast.error(message)

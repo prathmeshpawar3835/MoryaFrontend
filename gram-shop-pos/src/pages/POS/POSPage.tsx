@@ -1154,7 +1154,7 @@ export function POSPage() {
                       onChange={(e) => setStoreDiscountId(e.target.value ? Number(e.target.value) : '')}
                     >
                       <option value="">None</option>
-                      {discountsQ.data.map((d) => (
+                      {discountsQ.data.filter((d) => !d.ecommerceOnly).map((d) => (
                         <option key={d.id} value={d.id}>
                           {d.name} ({d.discountKind === DiscountKind.Percentage ? `${d.value}%` : formatMoney(d.value)})
                         </option>
